@@ -1408,6 +1408,119 @@
       return tracked ? tracked.name : code;
     }
 
+    function generateOverallEvaluationRuleBased(stocks) {
+      const today = new Date().toLocaleDateString("zh-TW", { year: "numeric", month: "2-digit", day: "2-digit" });
+      const avgChangePct = stocks.reduce((a, s) => a + (s.changePct || 0), 0) / stocks.length;
+      const risingCount = stocks.filter((s) => (s.changePct || 0) > 0).length;
+      const aboveMA5Count = stocks.filter((s) => s.close && s.ma5 && s.close > s.ma5).length;
+      let trend;
+      if (avgChangePct > 1) trend = "整體偏強，多頭氣氛為主。";
+      else if (avgChangePct < -1) trend = "整體偏弱，短線賣壓較重。";
+      else trend = "整體震盪整理，多空力道相當。";
+      const strengthText = `今日自選股平均漲跌幅為 ${avgChangePct.toFixed(2)}%，${stocks.length} 檔中 ${risingCount} 檔上漲，${aboveMA5Count} 檔收盤站上 5 日均線。${trend}`;
+
+      const riskSorted = [...stocks].sort((a, b) => {
+        const rA = Math.abs(a.changePct || 0) * (a.volRatio || 1);
+        const rB = Math.abs(b.changePct || 0) * (b.volRatio || 1);
+        return rB - rA;
+      });
+      const riskLabels = ["風險最高", "風險次高", "風險中等", "風險次低", "風險最低"];
+      const riskItems = riskSorted.map((s, i) => {
+        const pct = Math.abs(s.changePct || 0).toFixed(2);
+        const vr = (s.volRatio || 1).toFixed(2);
+        const dir = (s.changePct || 0) >= 0 ? "上漲" : "下跌";
+        const label = riskLabels[Math.min(i, riskLabels.length - 1)];
+        return `<li><strong>${escapeHtml(s.name)}（${escapeHtml(s.code)}）</strong>：${label}，今日${dir} ${pct}%，量能比 ${vr}。</li>`;
+      }).join("");
+
+      const watchItems = stocks.map((s) => {
+        const above5 = s.ma5 && s.close > s.ma5;
+        const ma5Str = s.ma5 ? s.ma5.toFixed(2) : "--";
+        const supportStr = above5 ? ma5Str : (s.ma20 ? s.ma20.toFixed(2) : "--");
+        const resistStr = !above5 ? ma5Str : (s.high20 ? s.high20.toFixed(2) : "--");
+        const posLabel = s.ma5 ? (above5 ? "站上" : "跌破") : "未知";
+        return `<li><strong>${escapeHtml(s.name)}（${escapeHtml(s.code)}）</strong>：收盤 ${s.close?.toFixed(2) || "--"}，${posLabel} 5日均線（${ma5Str}），支撐參考 ${supportStr}，壓力參考 ${resistStr}。</li>`;
+      }).join("");
+
+      return `
+        <p>以下為根據即時行情自動生成的投資組合評估（${today}）：</p>
+        <h3>1. 整體強弱評估</h3>
+        <p>${strengthText}</p>
+        <h3>2. 風險排序（由高到低）</h3>
+        <ol>${riskItems}</ol>
+        <h3>3. 明日重點觀察</h3>
+        <ul>${watchItems}</ul>
+        <h3>4. 免責聲明</h3>
+        <p>以上分析僅供參考，不構成任何投資建議，投資人應獨立判斷並自負盈虧。</p>
+        <hr />
+        <p><em>資料來源：台灣證券交易所、雅虎財經、Google Gemini AI</em></p>
+        <p><em>本報告僅供參考，不構成任何投資建議。</em></p>
+      `;
+    }
+
+    async function generateOverallEvaluationFromGemini(stocks) {
+      const stockSummary = stocks.map((s) =>
+        `${s.code} ${s.name}: 收盤${s.close?.toFixed(2)}, 漲跌幅${(s.changePct || 0).toFixed(2)}%, MA5=${s.ma5?.toFixed(2)}, MA20=${s.ma20?.toFixed(2)}, 量能比=${(s.volRatio || 1).toFixed(2)}`
+      ).join("\n");
+      const prompt = `你是台股投資組合分析師。以下是今日自選股即時資料：\n${stockSummary}\n\n請用繁體中文輸出（勿加多餘說明）：\n1. 整體強弱評估（2-3句，說明今日整體強弱與均線位置）\n2. 風險排序（由高到低，每檔一句，說明理由）\n3. 明日重點觀察（每檔一個具體觀察點，含關鍵價位）\n4. 免責聲明（固定一句）`;
+      try {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(geminiApiKey)}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { maxOutputTokens: 800, thinkingConfig: { thinkingBudget: 0 } }
+          })
+        });
+        if (!res.ok) throw new Error("API error");
+        const json = await res.json();
+        const text = json?.candidates?.[0]?.content?.parts?.map((p) => p.text || "").join("\n") || "";
+        if (!text) throw new Error("empty");
+        const today = new Date().toLocaleDateString("zh-TW", { year: "numeric", month: "2-digit", day: "2-digit" });
+        return `
+          <p>以下為 AI 生成的投資組合評估（${today}）：</p>
+          ${marked.parse(text)}
+          <hr />
+          <p><em>資料來源：台灣證券交易所、雅虎財經、Google Gemini AI</em></p>
+          <p><em>本報告僅供參考，不構成任何投資建議。</em></p>
+        `;
+      } catch (e) {
+        return generateOverallEvaluationRuleBased(stocks);
+      }
+    }
+
+    async function syncOverallEvaluation() {
+      const report = document.getElementById("report");
+      const heading = findSectionHeading("自選股綜合評價");
+      if (!heading || !report) return;
+
+      // Remove everything after the heading
+      let node = heading.nextSibling;
+      while (node) {
+        const next = node.nextSibling;
+        node.remove();
+        node = next;
+      }
+
+      const liveStocks = trackedStocks
+        .map((s) => findLiveSnapshotByCode(s.code))
+        .filter(Boolean);
+
+      if (!liveStocks.length) {
+        const ph = document.createElement("p");
+        ph.textContent = "尚無即時資料，請稍後再試。";
+        report.appendChild(ph);
+        return;
+      }
+
+      const container = document.createElement("div");
+      container.id = "overallEvaluationContent";
+      container.innerHTML = geminiApiKey
+        ? await generateOverallEvaluationFromGemini(liveStocks)
+        : generateOverallEvaluationRuleBased(liveStocks);
+      report.appendChild(container);
+    }
+
     async function addStockByCode(code, statusEl) {
       if (!/^\d{4}$/.test(code)) {
         statusEl.textContent = "請輸入 4 位數股票代碼。";
@@ -1439,6 +1552,7 @@
       const advice = await generateStockAdvice(stock);
       appendStockAnalysis(stock, advice);
       renderInteractiveStockManager();
+      await syncOverallEvaluation();
       document.getElementById("stockManagerStatus").textContent = `${code} 已新增，並完成即時 AI 建議。`;
     }
 
@@ -1450,6 +1564,7 @@
       await bootstrapRealData();
       syncStockAnalysisSection();
       renderPerStockCharts();
+      await syncOverallEvaluation();
       document.getElementById("stockManagerStatus").textContent = `${code} 已移除。`;
     }
 
@@ -1466,6 +1581,7 @@
       await bootstrapRealData();
       syncStockAnalysisSection();
       renderPerStockCharts();
+      await syncOverallEvaluation();
       document.getElementById("stockManagerStatus").textContent = `已將 ${sourceCode} 排序到 ${targetCode} 前方。`;
     }
 
@@ -1588,6 +1704,7 @@
       renderPerStockCharts();
       initInteractiveStockManager();
       await bootstrapRealData();
+      await syncOverallEvaluation();
     })();
   </script>
 </body>
