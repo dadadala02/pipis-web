@@ -212,7 +212,6 @@
   <div class="container">
     <section class="hero">
       <h1>台股自選股 AI 報告</h1>
-      <p>視覺化儀表板 + 詳細文字版（可放到 GitHub Pages）</p>
       <div class="meta" id="metaUpdated">資料更新中...</div>
       <div class="kpis">
         <div class="kpi"><div class="label">追蹤檔數</div><div class="value" id="kpiCount">--</div></div>
@@ -257,6 +256,7 @@
     </section>
 
     <article class="report" id="report"></article>
+    <p class="tip" id="contentUpdatedAt">報告更新時間：讀取中...</p>
     <p class="tip" id="sourceNote">資料來源：TWSE 開放資料 API（收盤後更新）。</p>
     <p class="status" id="fetchStatus">資料準備中...</p>
   </div>
@@ -264,130 +264,106 @@
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script>
-    const markdownText = `# 臭屁屁的股票 = 臭屁股
+    const defaultMarkdownText = `# 台股自選股 AI 報告模板
 
-你好！我是你的台股研究助理。針對你的波段操作需求，我已重新調整邏輯，將「族群輪動」與「資金流向」放在首位，並強化了支撐壓力位與風險控管的說明。
+日期：2026-05-10
+市場時區：Asia/Taipei（自動填表時間：2026-05-10 22:55）
+資料來源：TWSE MIS / Yahoo Finance / Google News RSS
 
-以下是為你量身打造的每日報告架構與今日內容：
+## 自選股清單
+- 2330 台積電
+- 2454 聯發科
+- 2317 鴻海
+- 2382 廣達
+- 6488 環球晶
 
-📋 今日偏好摘要
-策略核心：波段交易，重視族群輪動與法人資金連續性。
+---
 
-追蹤個股：欣興 (3037)、臻鼎-KY (4958)、景碩 (3189)、南電 (8046) —— 鎖定 ABF/PCB 族群。
+## 原始資料（由腳本自動填入）
 
-核心指標：均線位階、成交量變化、三大法人買賣超、支撐壓力。
+### 自選股資料
 
-順序調整：採「族群輪動優先」原則。
+#### 2330 台積電
+- 市場：上市
+- 收盤：2290.00（-20.00，-0.87%）
+- 開高低：2300.0 / 2310.0 / 2265.0
+- 成交量（張）：26,824
+- 均線：5MA 2275.00 / 20MA 2140.00 / 60MA 1954.58
+- 區間：20日高低 2310.00 / 1990.00
+- 量能比：0.83
+- 近期新聞：台股4萬1還能進場？「1警訊」快下車！杜金龍曝台積電(2330)、台達電(2308)買點：鴻海(2317)1壞處「已賣一半」 - 今周刊；2330 台積電 - 台股破四萬二創新高，台積電收2310元-股市爆料同學會 - CMoney
 
-新聞呈現：嚴格區分「利多/利空」，快速過濾雜訊。
+#### 2454 聯發科
+- 市場：上市
+- 收盤：3630.00（+210.00，+6.14%）
+- 開高低：3320.0 / 3670.0 / 3320.0
+- 成交量（張）：8,572
+- 均線：5MA 3301.00 / 20MA 2410.00 / 60MA 1941.08
+- 區間：20日高低 3630.00 / 1575.00
+- 量能比：0.81
+- 近期新聞：台股新二哥來了！聯發科飆天價市值5.82兆　首超車台達電 - ETtoday財經雲；發哥助攻！一表看14檔持有聯發科逾千張台股ETF 00927單周績效稱冠 - Yahoo股市
 
-風控機制：明確標註「追高提醒」與「停損規則」。
+#### 2317 鴻海
+- 市場：上市
+- 收盤：250.00（-3.50，-1.38%）
+- 開高低：254.0 / 256.0 / 245.5
+- 成交量（張）：98,037
+- 均線：5MA 244.50 / 20MA 221.75 / 60MA 215.92
+- 區間：20日高低 253.50 / 200.00
+- 量能比：1.51
+- 近期新聞：2317 鴻海 - 台股還在衝，現在最重要的不是贏錢，是先別輸錢-股市爆料同學會 - CMoney；台股快4萬2還能買什麼？群創、鴻海、聯電…先看外資買超股有誰，「5月賣股」不準了？老手喊今年不適用 - 今周刊
 
-📊 區塊 A：自選個股分析 (3037、4958、3189、8046)
-1. 3037 欣興
-趨勢判斷：多頭排列，處於上升通道。
+#### 2382 廣達
+- 市場：上市
+- 收盤：340.50（-3.50，-1.02%）
+- 開高低：343.5 / 345.5 / 335.5
+- 成交量（張）：16,906
+- 均線：5MA 334.00 / 20MA 325.68 / 60MA 299.64
+- 區間：20日高低 346.50 / 308.50
+- 量能比：1.06
+- 近期新聞：〈電子五哥營收〉廣達前4月營收已突破兆元關 下周法說釋AI伺服器展望 - news.cnyes.com；緯穎、鴻海、廣達…台灣伺服器大廠稱霸全球AI訂單！韓媒超羨慕，點名「這家」市值比肩韓股前20大 - 今周刊
 
-關鍵價位：支撐 185 / 壓力 205。
+#### 6488 環球晶
+- 市場：上櫃
+- 收盤：802.00（+9.00，+1.13%）
+- 開高低：808.0 / 842.0 / 772.0
+- 成交量（張）：18,787
+- 均線：5MA 717.60 / 20MA 592.90 / 60MA 498.06
+- 區間：20日高低 802.00 / 490.50
+- 量能比：1.47
+- 近期新聞：環球晶(6488) 個股概覽 | 個股 - 股市 - CMoney；環球晶新產能將挹注- 日報 - 工商時報
 
-量價觀察：成交量緩步放大，未見失控。
+---
 
-法人動向：外資連 3 買，投信買盤力道增強。
+## AI分析輸出（貼回來）
 
-風險提醒：接近 200 元整數關卡，若爆量不漲需留心。
+### 1) 整體總覽
 
-行動建議：續抱。分批進場點建議參考 5MA 回測。
+### 2) 區塊A：自選各股分析
 
-2. 4958 臻鼎-KY
-趨勢判斷：區間震盪偏多，站穩所有均線。
+### 3) 區塊B：AI分析後的產業推薦關注股票
+- 推薦產業 Top 3：
+- 產業 1 推薦股：
+- 產業 2 推薦股：
+- 產業 3 推薦股：
 
-關鍵價位：支撐 118 / 壓力 132.5。
+### 4) 風險排序
 
-量價觀察：量縮整理，等待突破關鍵壓力。
+### 5) 明日觀察清單
+1. 
+2. 
+3. 
+4. 
+5. 
 
-法人動向：法人維持中性操作。
-
-風險提醒：月線若跌破，波段趨勢轉弱。
-
-行動建議：分批買進。站穩 125 後加碼。
-
-3. 3189 景碩
-趨勢判斷：底部轉強，試圖挑戰季線。
-
-關鍵價位：支撐 102 / 壓力 115。
-
-量價觀察：低檔爆量，有低接買盤介入。
-
-法人動向：投信開始小幅試單。
-
-風險提醒：上方套牢壓力重，不宜追高。
-
-行動建議：觀望。待站穩 110 元後再考慮進場。
-
-4. 8046 南電
-趨勢判斷：相對弱勢，均線糾結中。
-
-關鍵價位：支撐 180 / 壓力 210。
-
-量價觀察：成交量低迷，缺乏主流資金帶動。
-
-法人動向：外資持續調節。
-
-風險提醒：180 元若跌破，恐回測前低。
-
-行動建議：觀望。目前資金效率低，暫不建倉。
-
-🚀 區塊 B：AI 產業動向與推薦
-推薦關注股票：
-
-2383 台光電：CCL 龍頭，受惠 AI 伺服器需求，法人持續回補。
-
-6274 台燿：高頻高速板需求強勁，均線多頭排列。
-
-2368 金像電：網通板龍頭，波段趨勢明確，站穩關鍵支撐。
-
-✉️ 每日投資分析短文 (可直接複製貼上)
-【2026/05/10 盤後分析報告】
-
-● 大盤重點
-今日大盤在電子權值股帶動下，收盤站上 XX 點。技術面維持多頭架構，關鍵在於台幣匯率能否持續轉升，目前盤面呈現「驚驚漲」格。
-
-● 產業分析
-半導體供應鏈營收亮眼，尤其是受惠 AI 換機潮的 PCB 與散熱族群，產業趨勢向上，訂單能見度已達 Q3。
-
-● 族群分析
-
-族群排名：AI PCB > 散熱 > IC 設計。
-
-輪動解讀：資金從高檔 AI 股流向低位階的設備股，呈現良性輪動。
-
-續航力：PCB 族群資金流向佔比提升，題材續航力強。
-
-● 重大新聞
-
-【利多】：美股科技股昨日大漲，激勵台股電子盤；多家 PCB 廠 4 月營收創新高。
-
-【利空】：國際地緣政治風險仍存，原物料報價上升可能壓抑毛利。
-
-● 風險控管規則
-
-避免追高：股價正乖離超過 5MA 5% 以上不追，等回測支撐再買。
-
-跌破停損：收盤價跌破 20 日均線(月線) 或 前低支撐位，隔日早盤執行出清，不留戀。
-
-● 明日觀察清單
-
-欣興 (3037)：觀察 200 元壓力能否帶量突破。
-
-台光電 (2383)：關注投信是否連續買超。
-
-美債殖利率：影響電子股本益比修正。
-
-【一鍵白話版】
-今天大盤還不錯，電子股是主角。你的欣興很強，抱好就對了；南電還在睡，先別理它。買股票不要衝動追高，等它掉到支撐位再買，如果跌破月線就先跑路，保住本金最重要。
-
-【免責聲明】
-內容僅供研究與教育用途，不構成任何投資建議。投資有風險，入市需謹慎。
+### 6) 免責
+- 本報告僅供研究與教育用途，不構成投資建議。
 `;
+
+    // 報告 API 位址：可用網址參數 reportApi 或 localStorage.reportApiUrl 設定
+    const reportApiUrl = new URLSearchParams(window.location.search).get("reportApi")
+      || localStorage.getItem("reportApiUrl")
+      || "";
 
     // 追蹤股票清單（可依需求增減）
     const trackedStocks = [
@@ -439,6 +415,98 @@
         hour: "2-digit",
         minute: "2-digit"
       }).format(dt);
+    }
+
+    // 從多種 JSON 結構萃取 markdown 文字（含 Gemini/n8n 常見格式）
+    function extractMarkdownFromPayload(payload) {
+      if (typeof payload === "string") return payload;
+      if (!payload || typeof payload !== "object") return "";
+
+      const direct = payload.markdown || payload.report || payload.text;
+      if (typeof direct === "string" && direct.trim()) return direct;
+
+      if (payload.data && typeof payload.data === "object") {
+        const nested = payload.data.markdown || payload.data.report || payload.data.text;
+        if (typeof nested === "string" && nested.trim()) return nested;
+      }
+
+      // Gemini generateContent 原生回傳：candidates[0].content.parts[0].text
+      const partsText = payload.candidates?.[0]?.content?.parts
+        ?.map((p) => p && typeof p.text === "string" ? p.text : "")
+        .filter(Boolean)
+        .join("\n");
+      if (partsText && partsText.trim()) return partsText;
+
+      // n8n 有時會把結果包成陣列
+      if (Array.isArray(payload) && payload.length) {
+        for (const item of payload) {
+          const value = extractMarkdownFromPayload(item);
+          if (value) return value;
+        }
+      }
+
+      return "";
+    }
+
+    // 讀取 Gemini 報告（支援純文字或 JSON）
+    async function fetchLatestReportMarkdown() {
+      if (!reportApiUrl) {
+        throw new Error("未設定 reportApi（請加 ?reportApi=... 或 localStorage.reportApiUrl）");
+      }
+
+      const res = await fetch(reportApiUrl, { cache: "no-store" });
+      if (!res.ok) {
+        throw new Error(`報告 API 錯誤：HTTP ${res.status}`);
+      }
+
+      const contentType = (res.headers.get("content-type") || "").toLowerCase();
+      if (contentType.includes("application/json")) {
+        const json = await res.json();
+        const markdown = extractMarkdownFromPayload(json);
+
+        if (typeof markdown !== "string" || !markdown.trim()) {
+          throw new Error("報告 API JSON 解析不到文字內容");
+        }
+        return markdown;
+      }
+
+      const text = await res.text();
+      if (!text.trim()) {
+        throw new Error("報告 API 回傳空內容");
+      }
+      return text;
+    }
+
+    // 從 Markdown 內文抓取自動填表時間（若有）
+    function extractReportUpdatedAt(markdown) {
+      if (typeof markdown !== "string") return "";
+      const match = markdown.match(/自動填表時間：([^）\)\n]+)/);
+      return match && match[1] ? match[1].trim() : "";
+    }
+
+    // 顯示報告更新時間
+    function updateReportUpdatedAt(markdown) {
+      const el = document.getElementById("contentUpdatedAt");
+      const fromMarkdown = extractReportUpdatedAt(markdown);
+      if (fromMarkdown) {
+        el.textContent = `報告更新時間：${fromMarkdown}`;
+      } else {
+        el.textContent = `報告更新時間：${formatDateTime(new Date())}`;
+      }
+    }
+
+    // 優先渲染 Gemini 最新報告，失敗才回退到預設文字
+    async function renderLatestReport() {
+      const reportEl = document.getElementById("report");
+      try {
+        const latestMarkdown = await fetchLatestReportMarkdown();
+        reportEl.innerHTML = marked.parse(normalizeMarkdown(latestMarkdown));
+        updateReportUpdatedAt(latestMarkdown);
+      } catch (error) {
+        reportEl.innerHTML = marked.parse(normalizeMarkdown(defaultMarkdownText));
+        updateReportUpdatedAt(defaultMarkdownText);
+        console.warn(`使用預設報告：${error.message}`);
+      }
     }
 
     // 讀取 JSON：先直連，失敗再嘗試代理（CORS 備援）
@@ -738,9 +806,8 @@
       return text;
     }
 
-    // 先渲染文字報告
-    document.getElementById('report').innerHTML = marked.parse(normalizeMarkdown(markdownText));
-    // 再啟動真實資料讀取
+    // 啟動：同時更新文字報告與真實行情資料
+    renderLatestReport();
     bootstrapRealData();
   </script>
 </body>
