@@ -233,10 +233,61 @@
     }
     .status.warn { color: #b45309; }
     .status.ok { color: #0f766e; }
-        table {
-          width: 100%;
-          display: block;
-        }
+    .stock-manager {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      margin: 6px 0 12px;
+    }
+    .stock-manager-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+    .stock-manager input {
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 14px;
+      min-width: 190px;
+    }
+    .sm-btn {
+      border: 0;
+      border-radius: 8px;
+      padding: 8px 12px;
+      cursor: pointer;
+      font-weight: 700;
+      font-family: "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+    }
+    .sm-btn.add { background: #0d9488; color: #fff; }
+    .sm-btn.remove { background: #e2e8f0; color: #1e293b; padding: 4px 8px; font-size: 12px; }
+    .stock-tags {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .stock-tags li {
+      margin: 0;
+      background: #ffffff;
+      border: 1px solid #dbe3ef;
+      border-radius: 999px;
+      padding: 4px 8px 4px 10px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+    }
+    .stock-manager-hint {
+      color: #64748b;
+      font-size: 12px;
+      margin: 0;
+    }
     @media (max-width: 960px) {
       .dashboard { grid-template-columns: 1fr; }
       .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -249,16 +300,19 @@
       h4 { font-size: 14px; }
       .psc-title { font-size: 0.65rem; }
       .psc-canvas-wrap { height: 140px; }
-        @media (max-width: 600px) {
-          .kpis { grid-template-columns: 1fr; gap: 8px; }
-          .kpi { padding: 8px 10px; }
-          .kpi .value { font-size: 14px; }
-          .price-board { padding: 10px; }
-          .report { padding: 10px; }
-          h2 { font-size: 18px; }
-          p { font-size: 14px; }
-          li { font-size: 14px; }
-        }
+    }
+    @media (max-width: 600px) {
+      .kpis { grid-template-columns: 1fr; gap: 8px; }
+      .kpi { padding: 8px 10px; }
+      .kpi .value { font-size: 14px; }
+      .price-board { padding: 10px; overflow-x: auto; }
+      .report { padding: 10px; }
+      h2 { font-size: 18px; }
+      p { font-size: 14px; }
+      li { font-size: 14px; }
+      .stock-manager input { width: 100%; min-width: 0; }
+      .stock-manager-row { display: grid; grid-template-columns: 1fr; }
+      .sm-btn.add { width: 100%; }
     }
   </style>
 </head>
@@ -458,13 +512,38 @@
       || localStorage.getItem("reportApiUrl")
       || "";
 
+    // Gemini 金鑰：可用網址參數 geminiApiKey 或 localStorage.geminiApiKey 設定
+    const geminiApiKey = new URLSearchParams(window.location.search).get("geminiApiKey")
+      || localStorage.getItem("geminiApiKey")
+      || "";
+
     // 追蹤股票清單（可依需求增減）
-    const trackedStocks = [
+    const defaultTrackedStocks = [
       { code: "3037", name: "欣興" },
       { code: "4958", name: "臻鼎-KY" },
       { code: "3189", name: "景碩" },
       { code: "8046", name: "南電" }
     ];
+    let trackedStocks = loadTrackedStocks();
+
+    function loadTrackedStocks() {
+      try {
+        const raw = localStorage.getItem("trackedStocks");
+        if (!raw) return [...defaultTrackedStocks];
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed) || !parsed.length) return [...defaultTrackedStocks];
+        const filtered = parsed
+          .map((s) => ({ code: String(s.code || "").trim(), name: String(s.name || "").trim() }))
+          .filter((s) => /^\d{4}$/.test(s.code));
+        return filtered.length ? filtered : [...defaultTrackedStocks];
+      } catch (e) {
+        return [...defaultTrackedStocks];
+      }
+    }
+
+    function persistTrackedStocks() {
+      localStorage.setItem("trackedStocks", JSON.stringify(trackedStocks));
+    }
 
     // 圖表字體設定
     const chartFont = {
@@ -480,6 +559,8 @@
     let trendChart;
     let radarChart;
     let mixChart;
+    let liveStockSnapshots = [];
+    let stockDayAllCache = null;
 
     // 將字串數字（含逗號、+號）轉成 Number
     function parseNumber(value) {
@@ -633,10 +714,12 @@
 
     // 取得當日全市場資料
     async function fetchStockDayAll() {
+      if (stockDayAllCache) return stockDayAllCache;
       const result = await fetchJsonWithFallback("https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_ALL");
       if (!Array.isArray(result.json) || !result.json.length) {
         throw new Error("STOCK_DAY_ALL 回傳格式異常");
       }
+      stockDayAllCache = result;
       return result;
     }
 
@@ -681,6 +764,9 @@
       const change = parseNumber(daily.Change);
       const prevClose = close - change;
       const changePct = prevClose ? (change / prevClose) * 100 : 0;
+      const open = parseNumber(daily.OpeningPrice);
+      const high = parseNumber(daily.HighestPrice);
+      const low = parseNumber(daily.LowestPrice);
 
       if (!Number.isFinite(close) || !Number.isFinite(change)) {
         throw new Error(`${stock.code} 當日價格格式錯誤`);
@@ -689,6 +775,9 @@
       return {
         ...stock,
         close,
+        open,
+        high,
+        low,
         change,
         changePct,
         // 成交金額用於資金占比圖
@@ -734,6 +823,9 @@
     // 建立三張圖表
     function createCharts(stocks, labels) {
       const palette = ["#0d9488", "#f59e0b", "#0ea5e9", "#a855f7"];
+      if (trendChart) trendChart.destroy();
+      if (radarChart) radarChart.destroy();
+      if (mixChart) mixChart.destroy();
       // 趨勢折線圖資料集
       const trendDatasets = stocks.map((s, idx) => ({
         label: `${s.code} ${s.name}`,
@@ -843,33 +935,57 @@
     async function bootstrapRealData() {
       const statusEl = document.getElementById("fetchStatus");
       try {
+        if (!trackedStocks.length) {
+          liveStockSnapshots = [];
+          document.querySelector("#priceTable tbody").innerHTML = "<tr><td colspan=\"6\">尚無追蹤股票，請在自選股清單新增。</td></tr>";
+          document.getElementById("kpiCount").textContent = "0";
+          document.getElementById("kpiLeader").textContent = "--";
+          document.getElementById("kpiAvgMove").textContent = "--";
+          document.getElementById("kpiRisk").textContent = "--";
+          statusEl.className = "status";
+          statusEl.textContent = "目前沒有追蹤股票。";
+          return [];
+        }
+
         loadingMessage("正在讀取即時行情資料...");
         const dayAllResult = await fetchStockDayAll();
         const dayAll = dayAllResult.json;
         const byCode = new Map(dayAll.map((x) => [x.Code, x]));
 
-        const historyResults = await Promise.all(trackedStocks.map((s) => fetchStockHistory(s.code)));
-
-        const stocks = trackedStocks.map((stock, idx) => {
+        const stocks = [];
+        const historySources = [];
+        for (const stock of trackedStocks) {
           const daily = byCode.get(stock.code);
-          if (!daily) throw new Error(`查無 ${stock.code} 的當日資料`);
+          if (!daily) continue;
+          const historyResult = await fetchStockHistory(stock.code);
+          historySources.push(historyResult.source);
+          stocks.push(buildStockSnapshot(
+            { code: stock.code, name: daily.Name || stock.name || stock.code },
+            daily,
+            historyResult.data
+          ));
+        }
 
-          return buildStockSnapshot(stock, daily, historyResults[idx].data);
-        });
+        if (!stocks.length) {
+          throw new Error("追蹤股票皆無可用資料");
+        }
 
         const labels = stocks[0].history.map((x) => x.date);
         // 先更新 KPI，再建圖
         renderKpis(stocks);
         renderPriceBoard(stocks);
         createCharts(stocks, labels);
-        updateSourceNote(dayAllResult.source, historyResults.map((x) => x.source));
+        updateSourceNote(dayAllResult.source, historySources);
+        liveStockSnapshots = stocks;
 
         statusEl.className = "status ok";
         statusEl.textContent = "已載入 TWSE 真實資料，圖表與指標均為即時抓取結果。";
+        return stocks;
       } catch (error) {
         statusEl.className = "status warn";
         statusEl.textContent = `讀取真實資料失敗：${error.message}。請確認網路或 API 可用性。`;
         document.getElementById("metaUpdated").textContent = "最後更新：資料讀取失敗";
+        return [];
       }
     }
 
@@ -1047,12 +1163,271 @@
       });
     }
 
+    function escapeHtml(text) {
+      return String(text)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function findSectionHeading(title) {
+      const headings = [...document.querySelectorAll("#report h1, #report h2, #report h3")];
+      return headings.find((h) => h.textContent.trim().includes(title)) || null;
+    }
+
+    function parseAdviceToList(adviceText) {
+      const lines = String(adviceText || "")
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .map((line) => line.replace(/^[-*•]\s*/, ""));
+      return lines.length ? lines.slice(0, 5) : ["建議觀望，等待量縮止穩後再評估進場。"];
+    }
+
+    function createChartPayloadFromSnapshot(s) {
+      const history = (s.history || []).slice(-10);
+      const closes = history.map((x) => x.close).filter((n) => Number.isFinite(n));
+      const volumesLots = history.map((x) => Math.round((x.volume || 0) / 1000));
+      const dates = history.map((x) => x.date);
+      const ma = (arr, n) => {
+        const sample = arr.slice(-Math.min(n, arr.length));
+        if (!sample.length) return null;
+        return sample.reduce((a, b) => a + b, 0) / sample.length;
+      };
+      const high20 = closes.length ? Math.max(...closes) : s.close;
+      const low20 = closes.length ? Math.min(...closes) : s.close;
+      const vol5avg = ma(volumesLots, 5);
+      const vol20avg = ma(volumesLots, 20);
+      const volRatio = (vol5avg && vol20avg) ? vol5avg / vol20avg : 1;
+      const todayVol = volumesLots.length ? volumesLots[volumesLots.length - 1] : 0;
+
+      return {
+        code: s.code,
+        name: s.name,
+        market: "上市",
+        close: Number.isFinite(s.close) ? Number(s.close.toFixed(2)) : null,
+        change: Number.isFinite(s.change) ? Number(s.change.toFixed(2)) : null,
+        changePct: Number.isFinite(s.changePct) ? Number(s.changePct.toFixed(2)) : null,
+        open: Number.isFinite(s.open) ? Number(s.open.toFixed(2)) : null,
+        high: Number.isFinite(s.high) ? Number(s.high.toFixed(2)) : null,
+        low: Number.isFinite(s.low) ? Number(s.low.toFixed(2)) : null,
+        volume: todayVol,
+        ma5: ma(closes, 5) ? Number(ma(closes, 5).toFixed(2)) : null,
+        ma20: ma(closes, 20) ? Number(ma(closes, 20).toFixed(2)) : null,
+        ma60: ma(closes, 60) ? Number(ma(closes, 60).toFixed(2)) : null,
+        high20: Number.isFinite(high20) ? Number(high20.toFixed(2)) : null,
+        low20: Number.isFinite(low20) ? Number(low20.toFixed(2)) : null,
+        volRatio: Number.isFinite(volRatio) ? Number(volRatio.toFixed(2)) : null,
+        vol5avg: Number.isFinite(vol5avg) ? Math.round(vol5avg) : null,
+        vol20avg: Number.isFinite(vol20avg) ? Math.round(vol20avg) : null,
+        recentCloses: closes.map((n) => Number(n.toFixed(2))),
+        recentVolumes: volumesLots,
+        recentDates: dates
+      };
+    }
+
+    function findLiveSnapshotByCode(code) {
+      return liveStockSnapshots.find((s) => s.code === code) || null;
+    }
+
+    async function generateStockAdvice(stock) {
+      const fallback = [
+        `趨勢：${stock.name} 今日漲跌幅 ${formatPct(stock.changePct)}，短線請觀察是否站回短均。`,
+        `關鍵價位：可先看今日高低區間 ${stock.low?.toFixed(2) || "--"} ~ ${stock.high?.toFixed(2) || "--"}。`,
+        "量價：留意成交量是否放大且價格同步轉強。",
+        "風險：大盤波動、產業消息與法人動向皆可能放大震盪。",
+        "行動建議：先分批、小部位，並設好停損紀律。"
+      ];
+
+      if (!geminiApiKey) return fallback;
+
+      const prompt = `你是台股分析助理。請針對股票 ${stock.code} ${stock.name}，輸出 5 點繁中建議，每點一句，格式如下：\n- 趨勢：...\n- 關鍵價位：...\n- 量價：...\n- 風險：...\n- 行動建議：...\n\n資料：收盤 ${stock.close}, 漲跌 ${stock.change}, 漲跌幅 ${stock.changePct.toFixed(2)}%, 開高低 ${stock.open}/${stock.high}/${stock.low}`;
+
+      try {
+        const res = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + encodeURIComponent(geminiApiKey), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { maxOutputTokens: 420, thinkingConfig: { thinkingBudget: 0 } }
+          })
+        });
+
+        if (!res.ok) throw new Error("AI API 失敗");
+        const json = await res.json();
+        const text = json?.candidates?.[0]?.content?.parts?.map((p) => p.text || "").join("\n") || "";
+        const parsed = parseAdviceToList(text);
+        return parsed.length ? parsed : fallback;
+      } catch (e) {
+        return fallback;
+      }
+    }
+
+    function removeStockAnalysisByCode(code) {
+      const report = document.getElementById("report");
+      report.querySelectorAll(`.dynamic-stock-analysis[data-code="${code}"]`).forEach((el) => el.remove());
+
+      const headings = [...report.querySelectorAll("h2")];
+      const start = headings.find((h) => new RegExp(`^${code}\\s`).test(h.textContent.trim()));
+      if (!start) return;
+
+      let node = start;
+      while (node) {
+        const next = node.nextSibling;
+        const stopAt = node !== start
+          && node.nodeType === 1
+          && node.matches("h1, h2")
+          && (node.textContent.includes("自選股綜合評價") || /^\d{4}\s/.test(node.textContent.trim()));
+        if (stopAt) break;
+        node.remove();
+        node = next;
+      }
+    }
+
+    function appendStockAnalysis(stock, adviceList) {
+      removeStockAnalysisByCode(stock.code);
+
+      const report = document.getElementById("report");
+      const target = findSectionHeading("自選股綜合評價");
+      const payload = createChartPayloadFromSnapshot(stock);
+      const adviceHtml = adviceList.map((x) => `<li>${escapeHtml(x)}</li>`).join("");
+      const block = document.createElement("section");
+      block.className = "dynamic-stock-analysis";
+      block.setAttribute("data-code", stock.code);
+      block.innerHTML = `
+        <h2>${escapeHtml(stock.code)} ${escapeHtml(stock.name)}</h2>
+        <h3>1. 圖表顯示</h3>
+        <div class="stock-chart-block" data-stock='${JSON.stringify(payload).replace(/'/g, "&#39;")}'></div>
+        <h3>2. 小G建議</h3>
+        <ul>${adviceHtml}</ul>
+        <h3>3. 近期新聞</h3>
+        <ul><li>即時新聞載入中，建議在一鍵更新流程中取得完整新聞摘要。</li></ul>
+        <hr />`;
+
+      if (target) {
+        report.insertBefore(block, target);
+      } else {
+        report.appendChild(block);
+      }
+
+      renderPerStockCharts();
+    }
+
+    function getLatestStockName(code) {
+      const hit = findLiveSnapshotByCode(code);
+      if (hit) return hit.name;
+      const tracked = trackedStocks.find((s) => s.code === code);
+      return tracked ? tracked.name : code;
+    }
+
+    async function addStockByCode(code, statusEl) {
+      if (!/^\d{4}$/.test(code)) {
+        statusEl.textContent = "請輸入 4 位數股票代碼。";
+        return;
+      }
+      if (trackedStocks.some((s) => s.code === code)) {
+        statusEl.textContent = `${code} 已在清單中。`;
+        return;
+      }
+
+      statusEl.textContent = `正在新增 ${code}...`;
+      const dayAllResult = await fetchStockDayAll();
+      const quote = dayAllResult.json.find((x) => x.Code === code);
+      if (!quote) {
+        statusEl.textContent = `查無 ${code}，請確認代碼。`;
+        return;
+      }
+
+      trackedStocks.push({ code, name: quote.Name || code });
+      persistTrackedStocks();
+      const snapshots = await bootstrapRealData();
+      const stock = snapshots.find((x) => x.code === code);
+      if (!stock) {
+        renderInteractiveStockManager();
+        document.getElementById("stockManagerStatus").textContent = `${code} 新增成功，但暫時抓不到完整歷史資料。`;
+        return;
+      }
+
+      const advice = await generateStockAdvice(stock);
+      appendStockAnalysis(stock, advice);
+      renderInteractiveStockManager();
+      document.getElementById("stockManagerStatus").textContent = `${code} 已新增，並完成即時 AI 建議。`;
+    }
+
+    async function removeStockByCode(code, statusEl) {
+      trackedStocks = trackedStocks.filter((s) => s.code !== code);
+      persistTrackedStocks();
+      removeStockAnalysisByCode(code);
+      renderInteractiveStockManager();
+      await bootstrapRealData();
+      document.getElementById("stockManagerStatus").textContent = `${code} 已移除。`;
+    }
+
+    function renderInteractiveStockManager() {
+      const host = document.getElementById("interactiveStockManager");
+      if (!host) return;
+      const tags = trackedStocks.map((s) => `
+        <li>
+          <span>${escapeHtml(s.code)} ${escapeHtml(getLatestStockName(s.code))}</span>
+          <button class="sm-btn remove" data-code="${escapeHtml(s.code)}" title="移除">-</button>
+          <button class="sm-btn remove" data-code="${escapeHtml(s.code)}" title="移除">x</button>
+        </li>
+      `).join("");
+      host.innerHTML = `
+        <div class="stock-manager">
+          <div class="stock-manager-row">
+            <input id="stockCodeInput" type="text" placeholder="輸入 4 位數代碼，例如 2330" maxlength="4" />
+            <button id="stockAddBtn" class="sm-btn add">+ 新增股票</button>
+          </div>
+          <ul class="stock-tags">${tags || "<li>目前尚無股票</li>"}</ul>
+          <p class="stock-manager-hint">按 + 新增、按 x 刪除。新增後會即時補上該股 AI 建議與圖表。</p>
+          <p class="stock-manager-hint" id="stockManagerStatus"></p>
+        </div>
+      `;
+
+      const statusEl = document.getElementById("stockManagerStatus");
+      const inputEl = document.getElementById("stockCodeInput");
+      document.getElementById("stockAddBtn")?.addEventListener("click", async () => {
+        const code = (inputEl.value || "").trim();
+        await addStockByCode(code, statusEl);
+        inputEl.value = "";
+      });
+
+      host.querySelectorAll(".sm-btn.remove").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const code = btn.getAttribute("data-code");
+          await removeStockByCode(code, statusEl);
+        });
+      });
+    }
+
+    function initInteractiveStockManager() {
+      const listHeading = findSectionHeading("自選股清單");
+      if (!listHeading) return;
+      const oldList = listHeading.nextElementSibling && listHeading.nextElementSibling.tagName === "UL"
+        ? listHeading.nextElementSibling
+        : null;
+
+      const existing = document.getElementById("interactiveStockManager");
+      if (!existing) {
+        const mount = document.createElement("div");
+        mount.id = "interactiveStockManager";
+        listHeading.insertAdjacentElement("afterend", mount);
+      }
+      if (oldList) oldList.style.display = "none";
+
+      renderInteractiveStockManager();
+    }
+
     // 啟動：同時更新文字報告與真實行情資料
     (async () => {
       await renderLatestReport();
       renderPerStockCharts();
+      initInteractiveStockManager();
+      await bootstrapRealData();
     })();
-    bootstrapRealData();
   </script>
 </body>
 </html>
