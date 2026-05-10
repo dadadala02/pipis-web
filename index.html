@@ -91,6 +91,40 @@
       grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 14px;
     }
+    .price-board {
+      margin-top: 16px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      padding: 14px;
+    }
+    .price-board h3 {
+      margin: 0 0 10px;
+      font-size: 16px;
+      color: #0f172a;
+    }
+    .price-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    .price-table th,
+    .price-table td {
+      text-align: left;
+      padding: 10px 8px;
+      border-bottom: 1px solid #e2e8f0;
+      white-space: nowrap;
+    }
+    .price-table th {
+      color: #475569;
+      font-weight: 700;
+      font-size: 13px;
+    }
+    .num { font-family: "Sora", "Noto Sans TC", sans-serif; }
+    .up { color: #0f766e; font-weight: 700; }
+    .down { color: #b91c1c; font-weight: 700; }
+    .flat { color: #475569; font-weight: 700; }
     .panel {
       background: var(--card);
       border: 1px solid var(--border);
@@ -201,6 +235,25 @@
         <h3>資金配置（今日成交金額占比）</h3>
         <div class="canvas-wrap"><canvas id="mixChart"></canvas></div>
       </div>
+    </section>
+
+    <section class="price-board" aria-label="目前價格">
+      <h3>目前價格（當日收盤）</h3>
+      <table class="price-table" id="priceTable">
+        <thead>
+          <tr>
+            <th>股票</th>
+            <th>代碼</th>
+            <th>收盤價</th>
+            <th>漲跌</th>
+            <th>漲跌幅</th>
+            <th>成交金額(億)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td colspan="6">資料讀取中...</td></tr>
+        </tbody>
+      </table>
     </section>
 
     <article class="report" id="report"></article>
@@ -336,6 +389,7 @@
 內容僅供研究與教育用途，不構成任何投資建議。投資有風險，入市需謹慎。
 `;
 
+    // 追蹤股票清單（可依需求增減）
     const trackedStocks = [
       { code: "3037", name: "欣興" },
       { code: "4958", name: "臻鼎-KY" },
@@ -343,18 +397,22 @@
       { code: "8046", name: "南電" }
     ];
 
+    // 圖表字體設定
     const chartFont = {
       family: "Sora, Noto Sans TC, sans-serif",
       size: 11
     };
 
+    // 全域圖表預設樣式
     Chart.defaults.color = "#334155";
     Chart.defaults.font = chartFont;
 
+    // 三張圖表實例（先宣告，稍後建立）
     let trendChart;
     let radarChart;
     let mixChart;
 
+    // 將字串數字（含逗號、+號）轉成 Number
     function parseNumber(value) {
       if (value === null || value === undefined) return NaN;
       const cleaned = String(value).replace(/,/g, "").replace(/\+/g, "").trim();
@@ -362,14 +420,17 @@
       return Number.isFinite(n) ? n : NaN;
     }
 
+    // 限制數值範圍，避免圖表出現極端值
     function clamp(v, min, max) {
       return Math.max(min, Math.min(max, v));
     }
 
+    // 格式化百分比（保留正負號）
     function formatPct(v) {
       return `${v >= 0 ? "+" : ""}${v.toFixed(2)}%`;
     }
 
+    // 格式化時間顯示（繁中）
     function formatDateTime(dt) {
       return new Intl.DateTimeFormat("zh-TW", {
         year: "numeric",
@@ -380,21 +441,28 @@
       }).format(dt);
     }
 
+    // 讀取 JSON：先直連，失敗再嘗試代理（CORS 備援）
     async function fetchJsonWithFallback(primaryUrl) {
       const candidates = [
+        // 直連 TWSE
         { label: "direct", url: primaryUrl },
+        // 代理 1
         { label: "allorigins", url: `https://api.allorigins.win/raw?url=${encodeURIComponent(primaryUrl)}` },
+        // 代理 2
         { label: "corsproxy", url: `https://corsproxy.io/?${encodeURIComponent(primaryUrl)}` }
       ];
 
       let lastError = "";
       for (const candidate of candidates) {
         try {
+          // 禁用快取，確保每次拿到最新資料
           const res = await fetch(candidate.url, { cache: "no-store" });
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           const json = await res.json();
+          // 回傳資料與來源路徑（方便除錯）
           return { json, source: candidate.label };
         } catch (err) {
+          // 紀錄最後一個失敗原因
           lastError = `${candidate.label}: ${err.message}`;
         }
       }
@@ -402,6 +470,7 @@
       throw new Error(`所有來源都失敗 (${lastError})`);
     }
 
+    // 取得當日全市場資料
     async function fetchStockDayAll() {
       const result = await fetchJsonWithFallback("https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_ALL");
       if (!Array.isArray(result.json) || !result.json.length) {
@@ -410,8 +479,10 @@
       return result;
     }
 
+    // 取得單一股票近 5 日日資料
     async function fetchStockHistory(code) {
       const now = new Date();
+      // date 參數用當月 01 日即可（TWSE 會回整月資料）
       const dateParam = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}01`;
       const url = `https://www.twse.com.tw/exchangeReport/STOCK_DAY?response=json&date=${dateParam}&stockNo=${code}`;
       const result = await fetchJsonWithFallback(url);
@@ -421,6 +492,7 @@
       }
       return {
         source: result.source,
+        // 只保留近 5 筆，並挑出圖表需要欄位
         data: json.data.slice(-5).map((row) => ({
           date: String(row[0]).replace(/^\d+\//, ""),
           close: parseNumber(row[6]),
@@ -431,6 +503,7 @@
       };
     }
 
+    // 驗證歷史資料是否可繪圖
     function ensureHistoryRows(historyRows, code) {
       if (!Array.isArray(historyRows) || historyRows.length < 3) {
         throw new Error(`${code} 歷史資料不足`);
@@ -441,6 +514,7 @@
       return historyRows;
     }
 
+    // 組裝單一股票快照（當日 + 歷史）
     function buildStockSnapshot(stock, daily, historyRows) {
       const close = parseNumber(daily.ClosingPrice);
       const change = parseNumber(daily.Change);
@@ -456,25 +530,50 @@
         close,
         change,
         changePct,
+        // 成交金額用於資金占比圖
         tradeValue: parseNumber(daily.TradeValue),
         history: ensureHistoryRows(historyRows, stock.code)
       };
     }
 
+    // 在頁面上顯示目前資料來源路徑
     function updateSourceNote(daySource, historySources) {
       const uniq = Array.from(new Set([daySource, ...historySources]));
       const sourceText = uniq.join(" + ");
       document.getElementById("sourceNote").textContent = `資料來源：TWSE 開放資料 API（來源路徑：${sourceText}）。`;
     }
 
+    // 顯示每檔股票目前價格（收盤）
+    function renderPriceBoard(stocks) {
+      const tbody = document.querySelector("#priceTable tbody");
+      tbody.innerHTML = "";
+
+      for (const s of stocks) {
+        const cls = s.change > 0 ? "up" : (s.change < 0 ? "down" : "flat");
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${s.name}</td>
+          <td class="num">${s.code}</td>
+          <td class="num">${s.close.toFixed(2)}</td>
+          <td class="num ${cls}">${s.change >= 0 ? "+" : ""}${s.change.toFixed(2)}</td>
+          <td class="num ${cls}">${formatPct(s.changePct)}</td>
+          <td class="num">${(s.tradeValue / 1e8).toFixed(2)}</td>
+        `;
+        tbody.appendChild(tr);
+      }
+    }
+
+    // 更新狀態文字（例如：載入中）
     function loadingMessage(text) {
       const statusEl = document.getElementById("fetchStatus");
       statusEl.className = "status";
       statusEl.textContent = text;
     }
 
+    // 建立三張圖表
     function createCharts(stocks, labels) {
       const palette = ["#0d9488", "#f59e0b", "#0ea5e9", "#a855f7"];
+      // 趨勢折線圖資料集
       const trendDatasets = stocks.map((s, idx) => ({
         label: `${s.code} ${s.name}`,
         data: s.history.map((d) => d.close),
@@ -501,17 +600,23 @@
       const technical = clamp(50 + stocks.reduce((acc, s) => {
         const closes = s.history.map((h) => h.close);
         const ma5 = closes.reduce((a, b) => a + b, 0) / closes.length;
+        // 以現價偏離五日均線估計技術強度
         return acc + ((s.close - ma5) / ma5) * 400;
       }, 0) / stocks.length, 5, 95);
 
+      // 動能：用今日漲跌幅平均估算
       const momentum = clamp(50 + stocks.reduce((acc, s) => acc + s.changePct * 4, 0) / stocks.length, 5, 95);
+      // 量能：以成交金額粗略映射到 0-100
       const liquidity = clamp(30 + stocks.reduce((acc, s) => acc + (s.tradeValue / 1e8), 0) / stocks.length, 5, 95);
+      // 上漲家數占比
       const winRate = clamp((stocks.filter((s) => s.change > 0).length / stocks.length) * 100, 5, 95);
 
       const avg = stocks.reduce((a, s) => a + s.changePct, 0) / stocks.length;
       const variance = stocks.reduce((a, s) => a + Math.pow(s.changePct - avg, 2), 0) / stocks.length;
+      // 波動越大，控制分數越低
       const volatilityControl = clamp(95 - Math.sqrt(variance) * 14, 5, 95);
 
+      // 雷達圖
       radarChart = new Chart(document.getElementById("radarChart"), {
         type: "radar",
         data: {
@@ -559,6 +664,7 @@
       });
     }
 
+    // 更新上方 KPI 卡片
     function renderKpis(stocks) {
       const avgMove = stocks.reduce((acc, s) => acc + s.changePct, 0) / stocks.length;
       const leader = [...stocks].sort((a, b) => b.changePct - a.changePct)[0];
@@ -572,6 +678,7 @@
       document.getElementById("metaUpdated").textContent = `最後更新：${formatDateTime(new Date())}`;
     }
 
+    // 主流程：讀資料 -> 組資料 -> 更新卡片與圖表
     async function bootstrapRealData() {
       const statusEl = document.getElementById("fetchStatus");
       try {
@@ -590,7 +697,9 @@
         });
 
         const labels = stocks[0].history.map((x) => x.date);
+        // 先更新 KPI，再建圖
         renderKpis(stocks);
+        renderPriceBoard(stocks);
         createCharts(stocks, labels);
         updateSourceNote(dayAllResult.source, historyResults.map((x) => x.source));
 
@@ -603,6 +712,7 @@
       }
     }
 
+    // 將報告文字自動轉為分段標題，提升可讀性
     function normalizeMarkdown(raw) {
       let text = raw;
 
@@ -628,7 +738,9 @@
       return text;
     }
 
+    // 先渲染文字報告
     document.getElementById('report').innerHTML = marked.parse(normalizeMarkdown(markdownText));
+    // 再啟動真實資料讀取
     bootstrapRealData();
   </script>
 </body>
