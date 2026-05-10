@@ -309,6 +309,16 @@
       align-items: center;
       gap: 6px;
       font-size: 13px;
+      cursor: grab;
+      user-select: none;
+    }
+    .stock-tags li.dragging {
+      opacity: 0.55;
+      transform: scale(0.98);
+    }
+    .stock-tags li.drag-over {
+      border-color: #0d9488;
+      box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.2);
     }
     .stock-manager-hint {
       color: #64748b;
@@ -1397,6 +1407,20 @@
       document.getElementById("stockManagerStatus").textContent = `${code} 已移除。`;
     }
 
+    async function reorderStockByCode(sourceCode, targetCode) {
+      if (!sourceCode || !targetCode || sourceCode === targetCode) return;
+      const fromIndex = trackedStocks.findIndex((s) => s.code === sourceCode);
+      const toIndex = trackedStocks.findIndex((s) => s.code === targetCode);
+      if (fromIndex < 0 || toIndex < 0) return;
+
+      const [moved] = trackedStocks.splice(fromIndex, 1);
+      trackedStocks.splice(toIndex, 0, moved);
+      persistTrackedStocks();
+      renderInteractiveStockManager();
+      await bootstrapRealData();
+      document.getElementById("stockManagerStatus").textContent = `已將 ${sourceCode} 排序到 ${targetCode} 前方。`;
+    }
+
     function syncReportStockList() {
       const listHeading = findSectionHeading("自選股清單");
       if (!listHeading) return;
@@ -1421,10 +1445,9 @@
       const host = document.getElementById("interactiveStockManager");
       if (!host) return;
       const tags = trackedStocks.map((s) => `
-        <li>
+        <li class="stock-tag-item" draggable="true" data-code="${escapeHtml(s.code)}">
           <span>${escapeHtml(s.code)} ${escapeHtml(getLatestStockName(s.code))}</span>
           <button class="sm-btn remove" data-code="${escapeHtml(s.code)}" title="移除">-</button>
-          <button class="sm-btn remove" data-code="${escapeHtml(s.code)}" title="移除">x</button>
         </li>
       `).join("");
       host.innerHTML = `
@@ -1434,7 +1457,7 @@
             <button id="stockAddBtn" class="sm-btn add">+ 新增股票</button>
           </div>
           <ul class="stock-tags">${tags || "<li>目前尚無股票</li>"}</ul>
-          <p class="stock-manager-hint">按 + 新增、按 x 刪除。新增後會即時補上該股 AI 建議與圖表。</p>
+          <p class="stock-manager-hint">按 + 新增、按 - 刪除，可拖曳標籤排序。新增後會即時補上該股 AI 建議與圖表。</p>
           <p class="stock-manager-hint" id="stockManagerStatus"></p>
         </div>
       `;
@@ -1451,6 +1474,36 @@
         btn.addEventListener("click", async () => {
           const code = btn.getAttribute("data-code");
           await removeStockByCode(code, statusEl);
+        });
+      });
+
+      host.querySelectorAll(".stock-tag-item").forEach((item) => {
+        item.addEventListener("dragstart", (e) => {
+          item.classList.add("dragging");
+          e.dataTransfer?.setData("text/plain", item.getAttribute("data-code") || "");
+          if (e.dataTransfer) e.dataTransfer.effectAllowed = "move";
+        });
+
+        item.addEventListener("dragend", () => {
+          host.querySelectorAll(".stock-tag-item").forEach((li) => li.classList.remove("dragging", "drag-over"));
+        });
+
+        item.addEventListener("dragover", (e) => {
+          e.preventDefault();
+          item.classList.add("drag-over");
+          if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
+        });
+
+        item.addEventListener("dragleave", () => {
+          item.classList.remove("drag-over");
+        });
+
+        item.addEventListener("drop", async (e) => {
+          e.preventDefault();
+          item.classList.remove("drag-over");
+          const sourceCode = e.dataTransfer?.getData("text/plain") || "";
+          const targetCode = item.getAttribute("data-code") || "";
+          await reorderStockByCode(sourceCode, targetCode);
         });
       });
 
