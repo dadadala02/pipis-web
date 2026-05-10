@@ -1397,6 +1397,26 @@
       document.getElementById("stockManagerStatus").textContent = `${code} 已移除。`;
     }
 
+    function syncReportStockList() {
+      const listHeading = findSectionHeading("自選股清單");
+      if (!listHeading) return;
+
+      let listEl = document.getElementById("dynamicStockList");
+      if (!listEl) {
+        listEl = document.createElement("ul");
+        listEl.id = "dynamicStockList";
+        const manager = document.getElementById("interactiveStockManager");
+        if (manager) {
+          manager.insertAdjacentElement("afterend", listEl);
+        } else {
+          listHeading.insertAdjacentElement("afterend", listEl);
+        }
+      }
+
+      const items = trackedStocks.map((s) => `<li>${escapeHtml(s.code)} ${escapeHtml(getLatestStockName(s.code))}</li>`).join("");
+      listEl.innerHTML = items || "<li>目前尚無追蹤股票</li>";
+    }
+
     function renderInteractiveStockManager() {
       const host = document.getElementById("interactiveStockManager");
       if (!host) return;
@@ -1433,6 +1453,8 @@
           await removeStockByCode(code, statusEl);
         });
       });
+
+      syncReportStockList();
     }
 
     function initInteractiveStockManager() {
@@ -1448,9 +1470,13 @@
         mount.id = "interactiveStockManager";
         listHeading.insertAdjacentElement("afterend", mount);
       }
-      if (oldList) oldList.style.display = "none";
+      if (oldList) {
+        oldList.id = "dynamicStockList";
+        oldList.style.display = "block";
+      }
 
       renderInteractiveStockManager();
+      syncReportStockList();
     }
 
     // 啟動：同時更新文字報告與真實行情資料
