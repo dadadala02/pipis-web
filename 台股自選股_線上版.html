@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>台股自選股 AI 報告</title>
+  <style>
+    :root {
+      --bg: #f5f3ee;
+      --card: #ffffff;
+      --text: #1f2a37;
+      --muted: #6b7280;
+      --accent: #0f766e;
+      --accent-soft: #ccfbf1;
+      --border: #e5e7eb;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 0% 0%, #d9f99d 0, transparent 28%),
+        radial-gradient(circle at 100% 100%, #bfdbfe 0, transparent 30%),
+        var(--bg);
+      padding: 28px 16px;
+    }
+    .container {
+      width: min(980px, 100%);
+      margin: 0 auto;
+    }
+    .hero {
+      background: linear-gradient(135deg, #0f766e, #155e75);
+      color: #fff;
+      border-radius: 20px;
+      padding: 22px;
+      box-shadow: 0 14px 40px rgba(15, 118, 110, 0.25);
+    }
+    .hero h1 { margin: 0 0 8px; font-size: 28px; }
+    .hero p { margin: 0; opacity: 0.95; }
+    .meta {
+      margin-top: 12px;
+      font-size: 13px;
+      opacity: 0.9;
+    }
+    .report {
+      margin-top: 18px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 20px;
+      box-shadow: 0 8px 28px rgba(17, 24, 39, 0.08);
+      line-height: 1.75;
+    }
+    h1, h2, h3, h4 { line-height: 1.3; }
+    h1 { font-size: 28px; }
+    h2 { font-size: 22px; margin-top: 28px; color: #0f766e; }
+    h3 { font-size: 18px; margin-top: 22px; }
+    h4 { font-size: 16px; margin-top: 16px; }
+    hr { border: 0; border-top: 1px solid var(--border); margin: 24px 0; }
+    code {
+      background: #f3f4f6;
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.9em;
+    }
+    ul, ol { padding-left: 1.2rem; }
+    blockquote {
+      margin: 0;
+      padding: 10px 14px;
+      border-left: 4px solid var(--accent);
+      background: var(--accent-soft);
+      border-radius: 8px;
+    }
+    .tip {
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <section class="hero">
+      <h1>台股自選股 AI 報告</h1>
+      <p>線上查看版（可放到 GitHub Pages）</p>
+      <div class="meta">最後更新：2026-05-10 17:15</div>
+    </section>
+
+    <article class="report" id="report"></article>
+    <p class="tip">此頁由本機檔案自動產生，內容僅供研究與教育用途，不構成投資建議。</p>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script>
+    const markdownText = `# 台股自選股 AI 報告模板
+
+日期：2026-05-10
+市場時區：Asia/Taipei（自動填表時間：2026-05-10 16:43）
+資料來源：TWSE MIS / Yahoo Finance / Google News RSS
+
+## 自選股清單
+- 2330 台積電
+- 2454 聯發科
+- 2317 鴻海
+- 2382 廣達
+- 6488 環球晶
+
+---
+
+## 原始資料（由腳本自動填入）
+
+### 自選股資料
+
+#### 2330 台積電
+- 市場：上市
+- 收盤：2290.00（-20.00，-0.87%）
+- 開高低：2300.0 / 2310.0 / 2265.0
+- 成交量（張）：26,824
+- 均線：5MA 2275.00 / 20MA 2140.00 / 60MA 1954.58
+- 區間：20日高低 2310.00 / 1990.00
+- 量能比：0.83
+- 近期新聞：台股4萬1還能進場？「1警訊」快下車！杜金龍曝台積電(2330)、台達電(2308)買點：鴻海(2317)1壞處「已賣一半」 - 今周刊；2330 台積電 - 台股破四萬二創新高，台積電收2310元-股市爆料同學會 - CMoney
+
+#### 2454 聯發科
+- 市場：上市
+- 收盤：3630.00（+210.00，+6.14%）
+- 開高低：3320.0 / 3670.0 / 3320.0
+- 成交量（張）：8,572
+- 均線：5MA 3301.00 / 20MA 2410.00 / 60MA 1941.08
+- 區間：20日高低 3630.00 / 1575.00
+- 量能比：0.81
+- 近期新聞：台股新二哥來了！聯發科飆天價市值5.82兆　首超車台達電 - ETtoday財經雲；發哥助攻！一表看14檔持有聯發科逾千張台股ETF 00927單周績效稱冠 - Yahoo股市
+
+#### 2317 鴻海
+- 市場：上市
+- 收盤：250.00（-3.50，-1.38%）
+- 開高低：254.0 / 256.0 / 245.5
+- 成交量（張）：98,037
+- 均線：5MA 244.50 / 20MA 221.75 / 60MA 215.92
+- 區間：20日高低 253.50 / 200.00
+- 量能比：1.51
+- 近期新聞：三大法人買賣超 – 外資買超(2330)台積電、(2317)鴻海，投信買超(2330)台積電、(2408)南亞科，法人合計買超583.31億元 - sinotrade.com.tw；2317 鴻海 - 台股創高以後我的策略（它站同發）-股市爆料同學會 - CMoney
+
+#### 2382 廣達
+- 市場：上市
+- 收盤：340.50（-3.50，-1.02%）
+- 開高低：343.5 / 345.5 / 335.5
+- 成交量（張）：16,906
+- 均線：5MA 334.00 / 20MA 325.68 / 60MA 299.64
+- 區間：20日高低 346.50 / 308.50
+- 量能比：1.06
+- 近期新聞：老AI伺服器族群今日回神，補漲行情能否接棒？鴻海領頭、緯創外資加持，籌碼與營收同步驗證｜股市話題 - sinotrade.com.tw；緯穎、鴻海、廣達…台灣伺服器大廠稱霸全球AI訂單！韓媒超羨慕，點名「這家」市值比肩韓股前20大 - 今周刊
+
+#### 6488 環球晶
+- 市場：上櫃
+- 收盤：802.00（+9.00，+1.13%）
+- 開高低：808.0 / 842.0 / 772.0
+- 成交量（張）：18,787
+- 均線：5MA 717.60 / 20MA 592.90 / 60MA 498.06
+- 區間：20日高低 802.00 / 490.50
+- 量能比：1.47
+- 近期新聞：環球晶(6488) 個股概覽 | 個股 - 股市 - CMoney；環球晶新產能將挹注- 日報 - 工商時報
+
+---
+
+## AI分析輸出（貼回來）
+
+### 1) 自選股總覽
+
+### 2) 逐檔分析
+
+### 3) 風險排序
+
+### 4) 明日觀察清單
+1. 
+2. 
+3. 
+4. 
+5. 
+
+### 5) 免責
+- 本報告僅供研究與教育用途，不構成投資建議。
+`;
+    document.getElementById('report').innerHTML = marked.parse(markdownText);
+  </script>
+</body>
+</html>
