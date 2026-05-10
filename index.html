@@ -1,0 +1,814 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>台股自選股 AI 報告</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #d9cbb8;
+      --card: #ffffff;
+      --text: #1e1f27;
+      --muted: #6b7280;
+      --accent: #0d9488;
+      --accent-2: #f59e0b;
+      --accent-soft: #ccfbf1;
+      --border: #e5e7eb;
+      --shadow: 0 14px 38px rgba(15, 23, 42, 0.1);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+      color: var(--text);
+      background: var(--bg);
+      padding: 28px 16px;
+    }
+    .container {
+      width: min(1100px, 100%);
+      margin: 0 auto;
+    }
+    .hero {
+      background: linear-gradient(140deg, #0f766e, #0e7490 60%, #0369a1);
+      color: #fff;
+      border-radius: 24px;
+      padding: 24px;
+      box-shadow: 0 16px 44px rgba(8, 47, 73, 0.28);
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::after {
+      content: "";
+      position: absolute;
+      right: -40px;
+      top: -30px;
+      width: 180px;
+      height: 180px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.15);
+    }
+    .hero h1 {
+      margin: 0 0 8px;
+      font-size: clamp(26px, 4vw, 36px);
+      font-family: "Sora", "Noto Sans TC", sans-serif;
+      letter-spacing: 0.4px;
+    }
+    .hero p { margin: 0; opacity: 0.95; }
+    .meta {
+      margin-top: 12px;
+      font-size: 13px;
+      opacity: 0.9;
+    }
+    .kpis {
+      margin-top: 18px;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .kpi {
+      background: rgba(255, 255, 255, 0.14);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      border-radius: 14px;
+      padding: 10px 12px;
+      backdrop-filter: blur(2px);
+    }
+    .kpi .label {
+      font-size: 12px;
+      opacity: 0.85;
+    }
+    .kpi .value {
+      margin-top: 4px;
+      font-family: "Sora", "Noto Sans TC", sans-serif;
+      font-size: 20px;
+      font-weight: 700;
+    }
+    .dashboard {
+      margin-top: 18px;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+    .price-board {
+      margin-top: 16px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      padding: 14px;
+    }
+    .price-board h3 {
+      margin: 0 0 10px;
+      font-size: 16px;
+      color: #0f172a;
+    }
+    .price-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    .price-table th,
+    .price-table td {
+      text-align: left;
+      padding: 10px 8px;
+      border-bottom: 1px solid #e2e8f0;
+      white-space: nowrap;
+    }
+    .price-table th {
+      color: #475569;
+      font-weight: 700;
+      font-size: 13px;
+    }
+    .num { font-family: "Sora", "Noto Sans TC", sans-serif; }
+    .up { color: #0f766e; font-weight: 700; }
+    .down { color: #b91c1c; font-weight: 700; }
+    .flat { color: #475569; font-weight: 700; }
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 14px;
+      box-shadow: var(--shadow);
+      min-height: 280px;
+      animation: riseIn .5s ease;
+    }
+    .panel h3 {
+      margin: 0 0 10px;
+      font-size: 15px;
+      color: #0f172a;
+      letter-spacing: 0.2px;
+    }
+    .canvas-wrap {
+      position: relative;
+      height: 220px;
+    }
+    @keyframes riseIn {
+      from { transform: translateY(8px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    .report {
+      margin-top: 18px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 24px;
+      box-shadow: var(--shadow);
+      line-height: 1.8;
+    }
+    h1, h2, h3, h4 { line-height: 1.3; }
+    h1 { font-size: 28px; }
+    h2 {
+      font-size: 22px;
+      margin-top: 34px;
+      margin-bottom: 12px;
+      color: #0f766e;
+      border-left: 6px solid #14b8a6;
+      padding-left: 10px;
+    }
+    h3 { font-size: 19px; margin-top: 24px; margin-bottom: 10px; color: #0f172a; }
+    h4 { font-size: 16px; margin-top: 16px; margin-bottom: 8px; }
+    .report p { margin: 10px 0; }
+    .report li { margin: 6px 0; }
+    .report strong { color: #0f172a; }
+    hr { border: 0; border-top: 1px solid var(--border); margin: 24px 0; }
+    code {
+      background: #f3f4f6;
+      padding: 2px 6px;
+      border-radius: 6px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.9em;
+    }
+    ul, ol { padding-left: 1.2rem; }
+    blockquote {
+      margin: 0;
+      padding: 10px 14px;
+      border-left: 4px solid var(--accent);
+      background: var(--accent-soft);
+      border-radius: 8px;
+    }
+    .tip {
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .status {
+      margin-top: 8px;
+      color: #475569;
+      font-size: 13px;
+    }
+    .status.warn { color: #b45309; }
+    .status.ok { color: #0f766e; }
+    @media (max-width: 960px) {
+      .dashboard { grid-template-columns: 1fr; }
+      .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .panel { min-height: 250px; }
+      .canvas-wrap { height: 190px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <section class="hero">
+      <h1>台股自選股 AI 報告</h1>
+      <div class="meta" id="metaUpdated">資料更新中...</div>
+      <div class="kpis">
+        <div class="kpi"><div class="label">追蹤檔數</div><div class="value" id="kpiCount">--</div></div>
+        <div class="kpi"><div class="label">當日最強</div><div class="value" id="kpiLeader">--</div></div>
+        <div class="kpi"><div class="label">平均漲跌幅</div><div class="value" id="kpiAvgMove">--</div></div>
+        <div class="kpi"><div class="label">風險等級</div><div class="value" id="kpiRisk">--</div></div>
+      </div>
+    </section>
+
+    <section class="dashboard" aria-label="報告圖表">
+      <div class="panel">
+        <h3>個股近 5 日收盤趨勢（真實資料）</h3>
+        <div class="canvas-wrap"><canvas id="trendChart"></canvas></div>
+      </div>
+      <div class="panel">
+        <h3>今日強弱雷達（技術/動能/量能）</h3>
+        <div class="canvas-wrap"><canvas id="radarChart"></canvas></div>
+      </div>
+      <div class="panel">
+        <h3>資金配置（今日成交金額占比）</h3>
+        <div class="canvas-wrap"><canvas id="mixChart"></canvas></div>
+      </div>
+    </section>
+
+    <section class="price-board" aria-label="目前價格">
+      <h3>目前價格（當日收盤）</h3>
+      <table class="price-table" id="priceTable">
+        <thead>
+          <tr>
+            <th>股票</th>
+            <th>代碼</th>
+            <th>收盤價</th>
+            <th>漲跌</th>
+            <th>漲跌幅</th>
+            <th>成交金額(億)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td colspan="6">資料讀取中...</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <article class="report" id="report"></article>
+    <p class="tip" id="contentUpdatedAt">報告更新時間：讀取中...</p>
+    <p class="tip" id="sourceNote">資料來源：TWSE 開放資料 API（收盤後更新）。</p>
+    <p class="status" id="fetchStatus">資料準備中...</p>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    const defaultMarkdownText = `# 台股自選股 AI 報告模板
+
+日期：2026-05-10
+市場時區：Asia/Taipei（自動填表時間：2026-05-10 22:55）
+資料來源：TWSE MIS / Yahoo Finance / Google News RSS
+
+## 自選股清單
+- 2330 台積電
+- 2454 聯發科
+- 2317 鴻海
+- 2382 廣達
+- 6488 環球晶
+
+---
+
+## 原始資料（由腳本自動填入）
+
+### 自選股資料
+
+#### 2330 台積電
+- 市場：上市
+- 收盤：2290.00（-20.00，-0.87%）
+- 開高低：2300.0 / 2310.0 / 2265.0
+- 成交量（張）：26,824
+- 均線：5MA 2275.00 / 20MA 2140.00 / 60MA 1954.58
+- 區間：20日高低 2310.00 / 1990.00
+- 量能比：0.83
+- 近期新聞：台股4萬1還能進場？「1警訊」快下車！杜金龍曝台積電(2330)、台達電(2308)買點：鴻海(2317)1壞處「已賣一半」 - 今周刊；2330 台積電 - 台股破四萬二創新高，台積電收2310元-股市爆料同學會 - CMoney
+
+#### 2454 聯發科
+- 市場：上市
+- 收盤：3630.00（+210.00，+6.14%）
+- 開高低：3320.0 / 3670.0 / 3320.0
+- 成交量（張）：8,572
+- 均線：5MA 3301.00 / 20MA 2410.00 / 60MA 1941.08
+- 區間：20日高低 3630.00 / 1575.00
+- 量能比：0.81
+- 近期新聞：台股新二哥來了！聯發科飆天價市值5.82兆　首超車台達電 - ETtoday財經雲；發哥助攻！一表看14檔持有聯發科逾千張台股ETF 00927單周績效稱冠 - Yahoo股市
+
+#### 2317 鴻海
+- 市場：上市
+- 收盤：250.00（-3.50，-1.38%）
+- 開高低：254.0 / 256.0 / 245.5
+- 成交量（張）：98,037
+- 均線：5MA 244.50 / 20MA 221.75 / 60MA 215.92
+- 區間：20日高低 253.50 / 200.00
+- 量能比：1.51
+- 近期新聞：2317 鴻海 - 台股還在衝，現在最重要的不是贏錢，是先別輸錢-股市爆料同學會 - CMoney；台股快4萬2還能買什麼？群創、鴻海、聯電…先看外資買超股有誰，「5月賣股」不準了？老手喊今年不適用 - 今周刊
+
+#### 2382 廣達
+- 市場：上市
+- 收盤：340.50（-3.50，-1.02%）
+- 開高低：343.5 / 345.5 / 335.5
+- 成交量（張）：16,906
+- 均線：5MA 334.00 / 20MA 325.68 / 60MA 299.64
+- 區間：20日高低 346.50 / 308.50
+- 量能比：1.06
+- 近期新聞：〈電子五哥營收〉廣達前4月營收已突破兆元關 下周法說釋AI伺服器展望 - news.cnyes.com；緯穎、鴻海、廣達…台灣伺服器大廠稱霸全球AI訂單！韓媒超羨慕，點名「這家」市值比肩韓股前20大 - 今周刊
+
+#### 6488 環球晶
+- 市場：上櫃
+- 收盤：802.00（+9.00，+1.13%）
+- 開高低：808.0 / 842.0 / 772.0
+- 成交量（張）：18,787
+- 均線：5MA 717.60 / 20MA 592.90 / 60MA 498.06
+- 區間：20日高低 802.00 / 490.50
+- 量能比：1.47
+- 近期新聞：環球晶(6488) 個股概覽 | 個股 - 股市 - CMoney；環球晶新產能將挹注- 日報 - 工商時報
+
+---
+
+## AI分析輸出（貼回來）
+
+### 1) 整體總覽
+
+### 2) 區塊A：自選各股分析
+
+### 3) 區塊B：AI分析後的產業推薦關注股票
+- 推薦產業 Top 3：
+- 產業 1 推薦股：
+- 產業 2 推薦股：
+- 產業 3 推薦股：
+
+### 4) 風險排序
+
+### 5) 明日觀察清單
+1. 
+2. 
+3. 
+4. 
+5. 
+
+### 6) 免責
+- 本報告僅供研究與教育用途，不構成投資建議。
+`;
+
+    // 報告 API 位址：可用網址參數 reportApi 或 localStorage.reportApiUrl 設定
+    const reportApiUrl = new URLSearchParams(window.location.search).get("reportApi")
+      || localStorage.getItem("reportApiUrl")
+      || "";
+
+    // 追蹤股票清單（可依需求增減）
+    const trackedStocks = [
+      { code: "3037", name: "欣興" },
+      { code: "4958", name: "臻鼎-KY" },
+      { code: "3189", name: "景碩" },
+      { code: "8046", name: "南電" }
+    ];
+
+    // 圖表字體設定
+    const chartFont = {
+      family: "Sora, Noto Sans TC, sans-serif",
+      size: 11
+    };
+
+    // 全域圖表預設樣式
+    Chart.defaults.color = "#334155";
+    Chart.defaults.font = chartFont;
+
+    // 三張圖表實例（先宣告，稍後建立）
+    let trendChart;
+    let radarChart;
+    let mixChart;
+
+    // 將字串數字（含逗號、+號）轉成 Number
+    function parseNumber(value) {
+      if (value === null || value === undefined) return NaN;
+      const cleaned = String(value).replace(/,/g, "").replace(/\+/g, "").trim();
+      const n = Number(cleaned);
+      return Number.isFinite(n) ? n : NaN;
+    }
+
+    // 限制數值範圍，避免圖表出現極端值
+    function clamp(v, min, max) {
+      return Math.max(min, Math.min(max, v));
+    }
+
+    // 格式化百分比（保留正負號）
+    function formatPct(v) {
+      return `${v >= 0 ? "+" : ""}${v.toFixed(2)}%`;
+    }
+
+    // 格式化時間顯示（繁中）
+    function formatDateTime(dt) {
+      return new Intl.DateTimeFormat("zh-TW", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit"
+      }).format(dt);
+    }
+
+    // 從多種 JSON 結構萃取 markdown 文字（含 Gemini/n8n 常見格式）
+    function extractMarkdownFromPayload(payload) {
+      if (typeof payload === "string") return payload;
+      if (!payload || typeof payload !== "object") return "";
+
+      const direct = payload.markdown || payload.report || payload.text;
+      if (typeof direct === "string" && direct.trim()) return direct;
+
+      if (payload.data && typeof payload.data === "object") {
+        const nested = payload.data.markdown || payload.data.report || payload.data.text;
+        if (typeof nested === "string" && nested.trim()) return nested;
+      }
+
+      // Gemini generateContent 原生回傳：candidates[0].content.parts[0].text
+      const partsText = payload.candidates?.[0]?.content?.parts
+        ?.map((p) => p && typeof p.text === "string" ? p.text : "")
+        .filter(Boolean)
+        .join("\n");
+      if (partsText && partsText.trim()) return partsText;
+
+      // n8n 有時會把結果包成陣列
+      if (Array.isArray(payload) && payload.length) {
+        for (const item of payload) {
+          const value = extractMarkdownFromPayload(item);
+          if (value) return value;
+        }
+      }
+
+      return "";
+    }
+
+    // 讀取 Gemini 報告（支援純文字或 JSON）
+    async function fetchLatestReportMarkdown() {
+      if (!reportApiUrl) {
+        throw new Error("未設定 reportApi（請加 ?reportApi=... 或 localStorage.reportApiUrl）");
+      }
+
+      const res = await fetch(reportApiUrl, { cache: "no-store" });
+      if (!res.ok) {
+        throw new Error(`報告 API 錯誤：HTTP ${res.status}`);
+      }
+
+      const contentType = (res.headers.get("content-type") || "").toLowerCase();
+      if (contentType.includes("application/json")) {
+        const json = await res.json();
+        const markdown = extractMarkdownFromPayload(json);
+
+        if (typeof markdown !== "string" || !markdown.trim()) {
+          throw new Error("報告 API JSON 解析不到文字內容");
+        }
+        return markdown;
+      }
+
+      const text = await res.text();
+      if (!text.trim()) {
+        throw new Error("報告 API 回傳空內容");
+      }
+      return text;
+    }
+
+    // 從 Markdown 內文抓取自動填表時間（若有）
+    function extractReportUpdatedAt(markdown) {
+      if (typeof markdown !== "string") return "";
+      const match = markdown.match(/自動填表時間：([^）\)\n]+)/);
+      return match && match[1] ? match[1].trim() : "";
+    }
+
+    // 顯示報告更新時間
+    function updateReportUpdatedAt(markdown) {
+      const el = document.getElementById("contentUpdatedAt");
+      const fromMarkdown = extractReportUpdatedAt(markdown);
+      if (fromMarkdown) {
+        el.textContent = `報告更新時間：${fromMarkdown}`;
+      } else {
+        el.textContent = `報告更新時間：${formatDateTime(new Date())}`;
+      }
+    }
+
+    // 優先渲染 Gemini 最新報告，失敗才回退到預設文字
+    async function renderLatestReport() {
+      const reportEl = document.getElementById("report");
+      try {
+        const latestMarkdown = await fetchLatestReportMarkdown();
+        reportEl.innerHTML = marked.parse(normalizeMarkdown(latestMarkdown));
+        updateReportUpdatedAt(latestMarkdown);
+      } catch (error) {
+        reportEl.innerHTML = marked.parse(normalizeMarkdown(defaultMarkdownText));
+        updateReportUpdatedAt(defaultMarkdownText);
+        console.warn(`使用預設報告：${error.message}`);
+      }
+    }
+
+    // 讀取 JSON：先直連，失敗再嘗試代理（CORS 備援）
+    async function fetchJsonWithFallback(primaryUrl) {
+      const candidates = [
+        // 直連 TWSE
+        { label: "direct", url: primaryUrl },
+        // 代理 1
+        { label: "allorigins", url: `https://api.allorigins.win/raw?url=${encodeURIComponent(primaryUrl)}` },
+        // 代理 2
+        { label: "corsproxy", url: `https://corsproxy.io/?${encodeURIComponent(primaryUrl)}` }
+      ];
+
+      let lastError = "";
+      for (const candidate of candidates) {
+        try {
+          // 禁用快取，確保每次拿到最新資料
+          const res = await fetch(candidate.url, { cache: "no-store" });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const json = await res.json();
+          // 回傳資料與來源路徑（方便除錯）
+          return { json, source: candidate.label };
+        } catch (err) {
+          // 紀錄最後一個失敗原因
+          lastError = `${candidate.label}: ${err.message}`;
+        }
+      }
+
+      throw new Error(`所有來源都失敗 (${lastError})`);
+    }
+
+    // 取得當日全市場資料
+    async function fetchStockDayAll() {
+      const result = await fetchJsonWithFallback("https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_ALL");
+      if (!Array.isArray(result.json) || !result.json.length) {
+        throw new Error("STOCK_DAY_ALL 回傳格式異常");
+      }
+      return result;
+    }
+
+    // 取得單一股票近 5 日日資料
+    async function fetchStockHistory(code) {
+      const now = new Date();
+      // date 參數用當月 01 日即可（TWSE 會回整月資料）
+      const dateParam = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}01`;
+      const url = `https://www.twse.com.tw/exchangeReport/STOCK_DAY?response=json&date=${dateParam}&stockNo=${code}`;
+      const result = await fetchJsonWithFallback(url);
+      const json = result.json;
+      if (json.stat !== "OK" || !Array.isArray(json.data) || !json.data.length) {
+        throw new Error(`No history for ${code}`);
+      }
+      return {
+        source: result.source,
+        // 只保留近 5 筆，並挑出圖表需要欄位
+        data: json.data.slice(-5).map((row) => ({
+          date: String(row[0]).replace(/^\d+\//, ""),
+          close: parseNumber(row[6]),
+          change: parseNumber(row[7]),
+          volume: parseNumber(row[1]),
+          tradeValue: parseNumber(row[2])
+        }))
+      };
+    }
+
+    // 驗證歷史資料是否可繪圖
+    function ensureHistoryRows(historyRows, code) {
+      if (!Array.isArray(historyRows) || historyRows.length < 3) {
+        throw new Error(`${code} 歷史資料不足`);
+      }
+      if (historyRows.some((x) => !Number.isFinite(x.close))) {
+        throw new Error(`${code} 歷史收盤價格式錯誤`);
+      }
+      return historyRows;
+    }
+
+    // 組裝單一股票快照（當日 + 歷史）
+    function buildStockSnapshot(stock, daily, historyRows) {
+      const close = parseNumber(daily.ClosingPrice);
+      const change = parseNumber(daily.Change);
+      const prevClose = close - change;
+      const changePct = prevClose ? (change / prevClose) * 100 : 0;
+
+      if (!Number.isFinite(close) || !Number.isFinite(change)) {
+        throw new Error(`${stock.code} 當日價格格式錯誤`);
+      }
+
+      return {
+        ...stock,
+        close,
+        change,
+        changePct,
+        // 成交金額用於資金占比圖
+        tradeValue: parseNumber(daily.TradeValue),
+        history: ensureHistoryRows(historyRows, stock.code)
+      };
+    }
+
+    // 在頁面上顯示目前資料來源路徑
+    function updateSourceNote(daySource, historySources) {
+      const uniq = Array.from(new Set([daySource, ...historySources]));
+      const sourceText = uniq.join(" + ");
+      document.getElementById("sourceNote").textContent = `資料來源：TWSE 開放資料 API（來源路徑：${sourceText}）。`;
+    }
+
+    // 顯示每檔股票目前價格（收盤）
+    function renderPriceBoard(stocks) {
+      const tbody = document.querySelector("#priceTable tbody");
+      tbody.innerHTML = "";
+
+      for (const s of stocks) {
+        const cls = s.change > 0 ? "up" : (s.change < 0 ? "down" : "flat");
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${s.name}</td>
+          <td class="num">${s.code}</td>
+          <td class="num">${s.close.toFixed(2)}</td>
+          <td class="num ${cls}">${s.change >= 0 ? "+" : ""}${s.change.toFixed(2)}</td>
+          <td class="num ${cls}">${formatPct(s.changePct)}</td>
+          <td class="num">${(s.tradeValue / 1e8).toFixed(2)}</td>
+        `;
+        tbody.appendChild(tr);
+      }
+    }
+
+    // 更新狀態文字（例如：載入中）
+    function loadingMessage(text) {
+      const statusEl = document.getElementById("fetchStatus");
+      statusEl.className = "status";
+      statusEl.textContent = text;
+    }
+
+    // 建立三張圖表
+    function createCharts(stocks, labels) {
+      const palette = ["#0d9488", "#f59e0b", "#0ea5e9", "#a855f7"];
+      // 趨勢折線圖資料集
+      const trendDatasets = stocks.map((s, idx) => ({
+        label: `${s.code} ${s.name}`,
+        data: s.history.map((d) => d.close),
+        borderColor: palette[idx % palette.length],
+        backgroundColor: "transparent",
+        tension: 0.35,
+        pointRadius: 2.5
+      }));
+
+      trendChart = new Chart(document.getElementById("trendChart"), {
+        type: "line",
+        data: { labels, datasets: trendDatasets },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: "bottom" } },
+          scales: {
+            y: { grid: { color: "#e2e8f0" } },
+            x: { grid: { display: false } }
+          }
+        }
+      });
+
+      const technical = clamp(50 + stocks.reduce((acc, s) => {
+        const closes = s.history.map((h) => h.close);
+        const ma5 = closes.reduce((a, b) => a + b, 0) / closes.length;
+        // 以現價偏離五日均線估計技術強度
+        return acc + ((s.close - ma5) / ma5) * 400;
+      }, 0) / stocks.length, 5, 95);
+
+      // 動能：用今日漲跌幅平均估算
+      const momentum = clamp(50 + stocks.reduce((acc, s) => acc + s.changePct * 4, 0) / stocks.length, 5, 95);
+      // 量能：以成交金額粗略映射到 0-100
+      const liquidity = clamp(30 + stocks.reduce((acc, s) => acc + (s.tradeValue / 1e8), 0) / stocks.length, 5, 95);
+      // 上漲家數占比
+      const winRate = clamp((stocks.filter((s) => s.change > 0).length / stocks.length) * 100, 5, 95);
+
+      const avg = stocks.reduce((a, s) => a + s.changePct, 0) / stocks.length;
+      const variance = stocks.reduce((a, s) => a + Math.pow(s.changePct - avg, 2), 0) / stocks.length;
+      // 波動越大，控制分數越低
+      const volatilityControl = clamp(95 - Math.sqrt(variance) * 14, 5, 95);
+
+      // 雷達圖
+      radarChart = new Chart(document.getElementById("radarChart"), {
+        type: "radar",
+        data: {
+          labels: ["技術面", "動能", "量能", "上漲家數", "波動可控"],
+          datasets: [{
+            label: "今日評分",
+            data: [technical, momentum, liquidity, winRate, volatilityControl],
+            backgroundColor: "rgba(14,116,144,0.22)",
+            borderColor: "#0e7490",
+            pointBackgroundColor: "#0e7490"
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            r: {
+              suggestedMin: 0,
+              suggestedMax: 100,
+              angleLines: { color: "#cbd5e1" },
+              grid: { color: "#e2e8f0" },
+              pointLabels: { color: "#0f172a" }
+            }
+          }
+        }
+      });
+
+      mixChart = new Chart(document.getElementById("mixChart"), {
+        type: "doughnut",
+        data: {
+          labels: stocks.map((s) => `${s.code} ${s.name}`),
+          datasets: [{
+            data: stocks.map((s) => s.tradeValue),
+            backgroundColor: ["#0d9488", "#0ea5e9", "#f59e0b", "#94a3b8"],
+            borderWidth: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: "68%",
+          plugins: { legend: { position: "bottom" } }
+        }
+      });
+    }
+
+    // 更新上方 KPI 卡片
+    function renderKpis(stocks) {
+      const avgMove = stocks.reduce((acc, s) => acc + s.changePct, 0) / stocks.length;
+      const leader = [...stocks].sort((a, b) => b.changePct - a.changePct)[0];
+      const volatility = Math.sqrt(stocks.reduce((acc, s) => acc + Math.pow(s.changePct - avgMove, 2), 0) / stocks.length);
+      const risk = volatility >= 5 ? "高" : volatility >= 2.5 ? "中" : "低";
+
+      document.getElementById("kpiCount").textContent = String(stocks.length);
+      document.getElementById("kpiLeader").textContent = `${leader.code} ${formatPct(leader.changePct)}`;
+      document.getElementById("kpiAvgMove").textContent = formatPct(avgMove);
+      document.getElementById("kpiRisk").textContent = risk;
+      document.getElementById("metaUpdated").textContent = `最後更新：${formatDateTime(new Date())}`;
+    }
+
+    // 主流程：讀資料 -> 組資料 -> 更新卡片與圖表
+    async function bootstrapRealData() {
+      const statusEl = document.getElementById("fetchStatus");
+      try {
+        loadingMessage("正在讀取即時行情資料...");
+        const dayAllResult = await fetchStockDayAll();
+        const dayAll = dayAllResult.json;
+        const byCode = new Map(dayAll.map((x) => [x.Code, x]));
+
+        const historyResults = await Promise.all(trackedStocks.map((s) => fetchStockHistory(s.code)));
+
+        const stocks = trackedStocks.map((stock, idx) => {
+          const daily = byCode.get(stock.code);
+          if (!daily) throw new Error(`查無 ${stock.code} 的當日資料`);
+
+          return buildStockSnapshot(stock, daily, historyResults[idx].data);
+        });
+
+        const labels = stocks[0].history.map((x) => x.date);
+        // 先更新 KPI，再建圖
+        renderKpis(stocks);
+        renderPriceBoard(stocks);
+        createCharts(stocks, labels);
+        updateSourceNote(dayAllResult.source, historyResults.map((x) => x.source));
+
+        statusEl.className = "status ok";
+        statusEl.textContent = "已載入 TWSE 真實資料，圖表與指標均為即時抓取結果。";
+      } catch (error) {
+        statusEl.className = "status warn";
+        statusEl.textContent = `讀取真實資料失敗：${error.message}。請確認網路或 API 可用性。`;
+        document.getElementById("metaUpdated").textContent = "最後更新：資料讀取失敗";
+      }
+    }
+
+    // 將報告文字自動轉為分段標題，提升可讀性
+    function normalizeMarkdown(raw) {
+      let text = raw;
+
+      // Add explicit section headings for better visual grouping.
+      text = text
+        .replace(/\n📋\s*今日偏好摘要\n/g, "\n## 📋 今日偏好摘要\n")
+        .replace(/\n📊\s*區塊 A：/g, "\n## 📊 區塊 A：")
+        .replace(/\n🚀\s*區塊 B：/g, "\n## 🚀 區塊 B：")
+        .replace(/\n✉️\s*每日投資分析短文/g, "\n## ✉️ 每日投資分析短文")
+        .replace(/\n【一鍵白話版】/g, "\n## 【一鍵白話版】")
+        .replace(/\n【免責聲明】/g, "\n## 【免責聲明】");
+
+      // Convert common label lines into bullet points under each section.
+      text = text.replace(/\n(策略核心：|追蹤個股：|核心指標：|順序調整：|新聞呈現：|風控機制：)/g, "\n- $1");
+
+      // Improve sub-section readability for numbered stocks and report blocks.
+      text = text.replace(/\n(\d+\.\s[^\n]+)/g, "\n### $1");
+      text = text.replace(/\n(●\s[^\n]+)/g, "\n### $1");
+
+      // Ensure enough blank lines between dense chunks.
+      text = text.replace(/\n{3,}/g, "\n\n");
+
+      return text;
+    }
+
+    // 啟動：同時更新文字報告與真實行情資料
+    renderLatestReport();
+    bootstrapRealData();
+  </script>
+</body>
+</html>
