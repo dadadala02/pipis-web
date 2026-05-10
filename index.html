@@ -4,52 +4,127 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>台股自選股 AI 報告</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --bg: #f5f3ee;
+      --bg: #f8f6ef;
       --card: #ffffff;
-      --text: #1f2a37;
+      --text: #1e1f27;
       --muted: #6b7280;
-      --accent: #0f766e;
+      --accent: #0d9488;
+      --accent-2: #f59e0b;
       --accent-soft: #ccfbf1;
       --border: #e5e7eb;
+      --shadow: 0 14px 38px rgba(15, 23, 42, 0.1);
     }
     * { box-sizing: border-box; }
     body {
       margin: 0;
-      font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+      font-family: "Noto Sans TC", "Microsoft JhengHei", sans-serif;
       color: var(--text);
       background:
-        radial-gradient(circle at 0% 0%, #d9f99d 0, transparent 28%),
-        radial-gradient(circle at 100% 100%, #bfdbfe 0, transparent 30%),
+        radial-gradient(circle at 8% 0%, #fde68a 0, transparent 26%),
+        radial-gradient(circle at 100% 20%, #bfdbfe 0, transparent 30%),
+        radial-gradient(circle at 0% 100%, #99f6e4 0, transparent 25%),
         var(--bg);
       padding: 28px 16px;
     }
     .container {
-      width: min(980px, 100%);
+      width: min(1100px, 100%);
       margin: 0 auto;
     }
     .hero {
-      background: linear-gradient(135deg, #0f766e, #155e75);
+      background: linear-gradient(140deg, #0f766e, #0e7490 60%, #0369a1);
       color: #fff;
-      border-radius: 20px;
-      padding: 22px;
-      box-shadow: 0 14px 40px rgba(15, 118, 110, 0.25);
+      border-radius: 24px;
+      padding: 24px;
+      box-shadow: 0 16px 44px rgba(8, 47, 73, 0.28);
+      position: relative;
+      overflow: hidden;
     }
-    .hero h1 { margin: 0 0 8px; font-size: 28px; }
+    .hero::after {
+      content: "";
+      position: absolute;
+      right: -40px;
+      top: -30px;
+      width: 180px;
+      height: 180px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.15);
+    }
+    .hero h1 {
+      margin: 0 0 8px;
+      font-size: clamp(26px, 4vw, 36px);
+      font-family: "Sora", "Noto Sans TC", sans-serif;
+      letter-spacing: 0.4px;
+    }
     .hero p { margin: 0; opacity: 0.95; }
     .meta {
       margin-top: 12px;
       font-size: 13px;
       opacity: 0.9;
     }
+    .kpis {
+      margin-top: 18px;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .kpi {
+      background: rgba(255, 255, 255, 0.14);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      border-radius: 14px;
+      padding: 10px 12px;
+      backdrop-filter: blur(2px);
+    }
+    .kpi .label {
+      font-size: 12px;
+      opacity: 0.85;
+    }
+    .kpi .value {
+      margin-top: 4px;
+      font-family: "Sora", "Noto Sans TC", sans-serif;
+      font-size: 20px;
+      font-weight: 700;
+    }
+    .dashboard {
+      margin-top: 18px;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 14px;
+      box-shadow: var(--shadow);
+      min-height: 280px;
+      animation: riseIn .5s ease;
+    }
+    .panel h3 {
+      margin: 0 0 10px;
+      font-size: 15px;
+      color: #0f172a;
+      letter-spacing: 0.2px;
+    }
+    .canvas-wrap {
+      position: relative;
+      height: 220px;
+    }
+    @keyframes riseIn {
+      from { transform: translateY(8px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
     .report {
       margin-top: 18px;
       background: var(--card);
       border: 1px solid var(--border);
-      border-radius: 18px;
-      padding: 20px;
-      box-shadow: 0 8px 28px rgba(17, 24, 39, 0.08);
+      border-radius: 20px;
+      padding: 24px;
+      box-shadow: var(--shadow);
       line-height: 1.75;
     }
     h1, h2, h3, h4 { line-height: 1.3; }
@@ -78,14 +153,41 @@
       color: var(--muted);
       font-size: 13px;
     }
+    @media (max-width: 960px) {
+      .dashboard { grid-template-columns: 1fr; }
+      .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .panel { min-height: 250px; }
+      .canvas-wrap { height: 190px; }
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <section class="hero">
       <h1>台股自選股 AI 報告</h1>
-      <p>線上查看版（可放到 GitHub Pages）</p>
+      <p>視覺化儀表板 + 詳細文字版（可放到 GitHub Pages）</p>
       <div class="meta">最後更新：2026-05-10 17:36</div>
+      <div class="kpis">
+        <div class="kpi"><div class="label">追蹤檔數</div><div class="value">4</div></div>
+        <div class="kpi"><div class="label">主力族群</div><div class="value">ABF/PCB</div></div>
+        <div class="kpi"><div class="label">市場節奏</div><div class="value">波段</div></div>
+        <div class="kpi"><div class="label">風險等級</div><div class="value">中</div></div>
+      </div>
+    </section>
+
+    <section class="dashboard" aria-label="報告圖表">
+      <div class="panel">
+        <h3>個股波段分數（近 5 日）</h3>
+        <div class="canvas-wrap"><canvas id="trendChart"></canvas></div>
+      </div>
+      <div class="panel">
+        <h3>今日強弱雷達（技術/法人/量能）</h3>
+        <div class="canvas-wrap"><canvas id="radarChart"></canvas></div>
+      </div>
+      <div class="panel">
+        <h3>策略資源配置</h3>
+        <div class="canvas-wrap"><canvas id="mixChart"></canvas></div>
+      </div>
     </section>
 
     <article class="report" id="report"></article>
@@ -93,6 +195,7 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script>
     const markdownText = `# 臭屁屁的股票 = 臭屁股
 
@@ -218,6 +321,105 @@
 【免責聲明】
 內容僅供研究與教育用途，不構成任何投資建議。投資有風險，入市需謹慎。
 `;
+
+    const chartFont = {
+      family: "Sora, Noto Sans TC, sans-serif",
+      size: 11
+    };
+
+    Chart.defaults.color = "#334155";
+    Chart.defaults.font = chartFont;
+
+    new Chart(document.getElementById("trendChart"), {
+      type: "line",
+      data: {
+        labels: ["D-4", "D-3", "D-2", "D-1", "Today"],
+        datasets: [
+          {
+            label: "3037 欣興",
+            data: [67, 70, 72, 76, 79],
+            borderColor: "#0d9488",
+            backgroundColor: "rgba(13,148,136,0.15)",
+            tension: 0.35,
+            fill: true
+          },
+          {
+            label: "4958 臻鼎-KY",
+            data: [58, 60, 59, 63, 65],
+            borderColor: "#f59e0b",
+            backgroundColor: "rgba(245,158,11,0.08)",
+            tension: 0.35,
+            fill: true
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: "bottom" }
+        },
+        scales: {
+          y: { min: 40, max: 90, grid: { color: "#e2e8f0" } },
+          x: { grid: { display: false } }
+        }
+      }
+    });
+
+    new Chart(document.getElementById("radarChart"), {
+      type: "radar",
+      data: {
+        labels: ["技術面", "法人籌碼", "量能", "題材延續", "波動可控"],
+        datasets: [
+          {
+            label: "今日評分",
+            data: [78, 72, 74, 81, 69],
+            backgroundColor: "rgba(14,116,144,0.22)",
+            borderColor: "#0e7490",
+            pointBackgroundColor: "#0e7490"
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false }
+        },
+        scales: {
+          r: {
+            suggestedMin: 40,
+            suggestedMax: 90,
+            angleLines: { color: "#cbd5e1" },
+            grid: { color: "#e2e8f0" },
+            pointLabels: { color: "#0f172a" }
+          }
+        }
+      }
+    });
+
+    new Chart(document.getElementById("mixChart"), {
+      type: "doughnut",
+      data: {
+        labels: ["自選股主線", "族群輪動", "風險保留", "事件觀察"],
+        datasets: [
+          {
+            data: [46, 24, 18, 12],
+            backgroundColor: ["#0d9488", "#0ea5e9", "#f59e0b", "#94a3b8"],
+            borderWidth: 0
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: "68%",
+        plugins: {
+          legend: { position: "bottom" }
+        }
+      }
+    });
+
     document.getElementById('report').innerHTML = marked.parse(markdownText);
   </script>
 </body>
