@@ -32,7 +32,7 @@
       margin: 0 auto;
     }
     .hero {
-      background: linear-gradient(140deg, #0f766e, #0e7490 60%, #0369a1);
+      background: linear-gradient(140deg, #635b41, #705322 60%, #62461e);
       color: #fff;
       border-radius: 24px;
       padding: 24px;
@@ -172,6 +172,35 @@
     .report p { margin: 10px 0; }
     .report li { margin: 6px 0; }
     .report strong { color: #0f172a; }
+    /* ── 個股分析圖表 ─────────────────────────── */
+    .psc-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin: 10px 0 22px;
+    }
+    @media (max-width: 760px) { .psc-grid { grid-template-columns: 1fr; } }
+    .psc-card {
+      background: #f8f7f4;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 14px 10px;
+    }
+    .psc-title {
+      font-size: .72rem;
+      font-weight: 700;
+      letter-spacing: .06em;
+      color: #64748b;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+    }
+    .psc-canvas-wrap { position: relative; height: 175px; }
+    .psc-meta {
+      font-size: .68rem;
+      color: #94a3b8;
+      margin-top: 5px;
+      text-align: center;
+    }
     hr { border: 0; border-top: 1px solid var(--border); margin: 24px 0; }
     code {
       background: #f3f4f6;
@@ -266,24 +295,19 @@
   <script>
     const defaultMarkdownText = `# 台股自選股追蹤報告
 
-**資料日期：2026-05-10**　｜　自動更新時間：2026-05-10 23:44
+**資料日期：2026-05-10**　｜　自動更新時間：2026-05-10 23:53
 
 ---
 
 # 大盤走勢分析
 
-好的，根據您提供的自選股資料，以下是針對2026年05月10日台股大盤走勢的分析：
+2026-05-10 台股大盤走勢分析：
 
-*   **整體市場方向：** 今日市場呈現明顯的空頭走勢，尤其在ABF載板族群中跌勢慘重，多檔個股跌幅超過6%甚至逼近跌停。這顯示市場情緒偏向保守，資金正在從高位股撤出，大盤整體壓力沉重，短期內可能持續向下修正。
+*   **整體市場方向：** 今日大盤呈現明顯的空頭走勢。自選股清一色重挫，且跌幅均在6%以上，其中南電更是接近跌停，顯示市場賣壓沉重，投資人信心不足。量能方面，欣興量能比達1.53，顯示有較大的賣出量能，而其他個股量能比則相對較低，可能反映市場觀望氣氛濃厚，或賣壓已達一定程度。
 
-*   **強弱股特徵：**
-    *   **弱勢股：** 欣興、臻鼎-KY、景碩、南電等ABF載板指標股全面重挫，且均跌破5日均線，部分個股甚至跌破20日均線，顯示短期上漲動能嚴重受損。其中，欣興與南電跌幅最大，且欣興量能比放大，顯示賣壓沉重。
-    *   **強勢股：** 在今日的資料中，並無明顯的強勢股特徵，所有觀察個股皆呈現下跌，且跌幅不小。
+*   **強弱股特徵：** 今日自選股皆為ABF載板相關個股，且全部呈現弱勢。這些個股普遍跌破5日均線，甚至部分已跌破20日均線，顯示短期趨勢轉弱。尤其是欣興、南電等跌幅較大且量能相對放大者，其下行壓力較為顯著。目前市場上並無明顯的強勢族群出現，資金有撤出高價股的跡象。
 
-*   **值得關注的市場現象：**
-    *   **ABF載板族群領跌：** ABF載板作為過去一段時間的強勢族群，今日的全面性重挫具有指標意義，可能預示著市場資金對高成長、高本益比族群的風險偏好正在降低。
-    *   **量能變化：** 欣興量能比放大至1.53，顯示在下跌過程中伴隨較大的成交量，這可能代表籌碼正在鬆動，需留意後續是否會引發更深度的修正。而其他個股量能比未明顯放大，可能為補跌或觀望。
-    *   **均線結構：** 所有個股均已跌破5日均線，部分甚至逼近或跌破20日均線，顯示短期趨勢轉弱。若後續無法站回均線之上，恐將進一步測試下方支撐。
+*   **值得關注的市場現象：** ABF載板族群今日普遍重挫，且跌勢猛烈，這可能代表市場對該產業的未來展望出現疑慮，或是資金正在進行產業輪動。投資人應密切關注ABF載板族群後續走勢，以及是否有其他產業接棒領跌或領漲。此外，高價股的修正也可能對整體大盤造成壓力，需留意大盤指數是否會進一步下探。
 
 ---
 
@@ -301,20 +325,14 @@
 ## 3037 欣興
 
 ### 1. 圖表顯示
-- 市場：上市
-- 收盤：818.00（-78.00，-8.71%）
-- 開高低：871.0 / 872.0 / 808.0
-- 成交量：31,634 張
-- 均線：5MA 877.20 / 20MA 756.25 / 60MA 562.83
-- 區間：20日高低 911.00 / 597.00
-- 量能比：1.53
+<div class="stock-chart-block" data-stock='{"code": "3037", "name": "欣興", "market": "上市", "close": 818.0, "change": -78.0, "changePct": -8.71, "open": 871.0, "high": 872.0, "low": 808.0, "volume": 31634, "ma5": 877.2, "ma20": 756.25, "ma60": 562.83, "high20": 911.0, "low20": 597.0, "volRatio": 1.53, "vol5avg": 33008898, "vol20avg": 21561695, "recentCloses": [790.0, 839.0, 825.0, 803.0, 883.0, 911.0, 903.0, 858.0, 896.0, 818.0], "recentVolumes": [9512782, 7908161, 38017164, 31229061, 33290155, 42009149, 25232084, 40640067, 25433902, 31729292], "recentDates": ["04/24", "04/27", "04/28", "04/29", "04/30", "05/04", "05/05", "05/06", "05/07", "05/08"]}'></div>
 
 ### 2. 小G建議
-- 趨勢：欣興短線急跌，跌破5MA，但仍處於中長期多頭格局。
-- 關鍵價位：短期支撐觀察800元整數關卡，壓力在880元附近。
-- 量價：今日爆量下跌，顯示獲利了結賣壓沉重，需留意後續量能變化。
-- 風險：短線漲多修正風險，以及外資賣超動向可能影響股價表現。
-- 行動建議：短線建議觀望，待股價止穩或回測月線有撐再考慮佈局。
+- 趨勢：欣興股價短期面臨修正壓力，但中長期趨勢仍偏多。
+- 關鍵價位：支撐區約在800-810元，壓力區則位於870-880元。
+- 量價：今日帶量下殺，顯示賣壓沉重，短期需留意量能變化。
+- 風險：主要風險為產業景氣下行及市場資金流出，恐加劇跌勢。
+- 行動建議：建議觀望，待股價止穩並確認支撐有效後再考慮進場。
 
 ### 3. 近期新聞
 - 3037 欣興- 台指內資結算，賣壓回檔屬於正常運作-股市爆料同學會 - CMoney
@@ -326,45 +344,33 @@
 ## 4958 臻鼎-KY
 
 ### 1. 圖表顯示
-- 市場：上市
-- 收盤：401.00（-26.00，-6.09%）
-- 開高低：427.0 / 427.5 / 392.0
-- 成交量：41,833 張
-- 均線：5MA 419.80 / 20MA 341.60 / 60MA 246.47
-- 區間：20日高低 432.50 / 251.50
-- 量能比：0.95
+<div class="stock-chart-block" data-stock='{"code": "4958", "name": "臻鼎-KY", "market": "上市", "close": 401.0, "change": -26.0, "changePct": -6.09, "open": 427.0, "high": 427.5, "low": 392.0, "volume": 41833, "ma5": 419.8, "ma20": 341.6, "ma60": 246.47, "high20": 432.5, "low20": 251.5, "volRatio": 0.95, "vol5avg": 52329943, "vol20avg": 54830649, "recentCloses": [347.5, 358.5, 394.0, 383.0, 421.0, 432.5, 426.5, 412.0, 427.0, 401.0], "recentVolumes": [100773126, 95292695, 74669352, 70190139, 45468502, 79224330, 38771729, 54892889, 46833270, 41927500], "recentDates": ["04/24", "04/27", "04/28", "04/29", "04/30", "05/04", "05/05", "05/06", "05/07", "05/08"]}'></div>
 
 ### 2. 小G建議
-- 趨勢：短線回檔修正，中長期多頭格局不變。
-- 關鍵價位：支撐區約390-395元，壓力區約415-420元。
-- 量價：今日帶量下跌，顯示短線賣壓沉重，需觀察後續量能變化。
-- 風險：短線漲多拉回風險，以及大盤震盪可能影響個股表現。
-- 行動建議：短線觀望，待股價止穩或回測支撐區再考慮逢低佈局。
+- 趨勢：短線回檔修正，中長期多頭趨勢不變，站穩所有均線之上。
+- 關鍵價位：支撐區約390-400元，壓力區則在420-430元。
+- 量價：今日爆量下跌，顯示短線獲利了結賣壓沉重，需觀察後續量能變化。
+- 風險：短線漲多修正壓力，以及市場對高價股的追價意願降低。
+- 行動建議：短線可觀察390元支撐，若能守穩可考慮分批佈局，跌破則減碼。
 
 ### 3. 近期新聞
 - 【台股盤前0505】台股兆元天量暴漲1700點！AI 需求引爆IC 封測族群全面噴出！「強勢動能排行」:臻鼎-KY (4958)盟立(2464)一詮(2486)｜豐雲學堂2026 年 05 月 - sinotrade.com.tw
-- 【台股盤前0504】台積電尾盤爆量突襲，資金轉進櫃買?「投本比排行」:旺宏、景碩、臻鼎KY｜豐雲學堂2026 年 05 月 - sinotrade.com.tw
 - 是利多出盡還是南下載客？「這檔PCB」IC載板訂單滿手前景旺 股價卻逆勢重摔 - Yahoo股市
+- 05/05台股交易回顧｜臻鼎-KY(4958)漲勢驚人-林恩如 - CMoney投資網誌
 
 ---
 
 ## 3189 景碩
 
 ### 1. 圖表顯示
-- 市場：上市
-- 收盤：458.00（-34.50，-7.01%）
-- 開高低：487.0 / 487.5 / 445.5
-- 成交量：27,139 張
-- 均線：5MA 498.20 / 20MA 461.88 / 60MA 361.62
-- 區間：20日高低 531.00 / 366.50
-- 量能比：0.66
+<div class="stock-chart-block" data-stock='{"code": "3189", "name": "景碩", "market": "上市", "close": 458.0, "change": -34.5, "changePct": -7.01, "open": 487.0, "high": 487.5, "low": 445.5, "volume": 27139, "ma5": 498.2, "ma20": 461.88, "ma60": 361.62, "high20": 531.0, "low20": 366.5, "volRatio": 0.66, "vol5avg": 23397786, "vol20avg": 35226501, "recentCloses": [526.0, 515.0, 508.0, 508.0, 528.0, 531.0, 527.0, 482.5, 492.5, 458.0], "recentVolumes": [56000885, 52686798, 42965735, 24136265, 48256140, 24174483, 14633471, 30492676, 20492125, 27196176], "recentDates": ["04/24", "04/27", "04/28", "04/29", "04/30", "05/04", "05/05", "05/06", "05/07", "05/08"]}'></div>
 
 ### 2. 小G建議
-- 趨勢：景碩股價短期呈現弱勢修正，跌破20MA，中期仍維持多頭格局。
-- 關鍵價位：短期支撐在445.5元，壓力區則在487.0元至498.2元之間。
-- 量價：今日量能放大但股價重挫，顯示賣壓沉重，籌碼有鬆動跡象。
-- 風險：短期回檔風險增高，若無法守住關鍵支撐，恐進一步測試60MA。
-- 行動建議：建議觀望，待股價止穩並確認支撐有效後再考慮進場。
+- 趨勢：景碩短期受大盤修正影響，股價回檔，但中長期趨勢仍偏多。
+- 關鍵價位：上方壓力區約在480-490元，下方支撐區約在440-450元。
+- 量價：今日量能放大但股價重挫，顯示賣壓沉重，短期需觀察止跌訊號。
+- 風險：大盤系統性風險及ABF載板產業景氣雜音，可能影響股價表現。
+- 行動建議：建議觀望，待股價止穩並出現反彈訊號後再評估進場。
 
 ### 3. 近期新聞
 - 景碩(3189)-永豐金-中和 - 券商分點進出買賣統計-股市爆料同學會 - CMoney
@@ -376,20 +382,14 @@
 ## 8046 南電
 
 ### 1. 圖表顯示
-- 市場：上市
-- 收盤：854.00（-93.00，-9.82%）
-- 開高低：942.0 / 942.0 / 853.0
-- 成交量：18,901 張
-- 均線：5MA 944.80 / 20MA 830.80 / 60MA 610.64
-- 區間：20日高低 1005.00 / 646.00
-- 量能比：0.86
+<div class="stock-chart-block" data-stock='{"code": "8046", "name": "南電", "market": "上市", "close": 854.0, "change": -93.0, "changePct": -9.82, "open": 942.0, "high": 942.0, "low": 853.0, "volume": 18901, "ma5": 944.8, "ma20": 830.8, "ma60": 610.64, "high20": 1005.0, "low20": 646.0, "volRatio": 0.86, "vol5avg": 17109122, "vol20avg": 19935188, "recentCloses": [874.0, 913.0, 932.0, 916.0, 1005.0, 986.0, 997.0, 940.0, 947.0, 854.0], "recentVolumes": [22112991, 27647924, 23286333, 17288197, 20336203, 21653577, 11624024, 21747666, 11579428, 18940919], "recentDates": ["04/24", "04/27", "04/28", "04/29", "04/30", "05/04", "05/05", "05/06", "05/07", "05/08"]}'></div>
 
 ### 2. 小G建議
-- 趨勢：南電今日重挫，跌破5日均線，短期多頭趨勢受挫，需觀察是否能守住月線支撐。
-- 關鍵價位：上方壓力區約在5日均線944.8元，下方支撐區則在20日均線830.8元附近。
-- 量價：今日量能放大但股價重挫，顯示賣壓沉重，短期需留意量價關係是否能轉為健康。
-- 風險：主要風險為ABF載板產業景氣下行壓力，以及外資持續賣超可能造成的股價修正。
-- 行動建議：短線建議觀望，待股價止穩並確認月線支撐有效後再評估，不宜貿然進場搶反彈。
+- 趨勢：南電今日重挫跌停，短期均線下彎，股價跌破5日線，顯示短線轉弱。
+- 關鍵價位：上方壓力區約在940-950元，下方支撐區則可觀察20日均線830元附近。
+- 量價：今日爆出大量，股價卻重挫跌停，量價背離，顯示籌碼有鬆動跡象。
+- 風險：主要風險為ABF載板產業前景不明，以及高價股賣壓沉重，短期修正壓力大。
+- 行動建議：建議投資人暫時觀望，待股價止穩並出現底部訊號後再考慮進場。
 
 ### 3. 近期新聞
 - 8046 南電- 夢才跑到一半，你賣了嗎？-股市爆料同學會 - CMoney
@@ -400,28 +400,26 @@
 
 # 自選股綜合評價
 
-好的，以下是針對您的台股投資組合分析：
-
-**整體投資組合評估 (2026-05-10)**
+**台股投資組合評估 (2026-05-10)**
 
 1.  **整體強弱評估：**
-    目前您的投資組合呈現明顯的弱勢。所有持股今日均大幅下跌，且跌幅均超過 6%，其中南電更是接近跌停。從均線來看，所有個股的收盤價皆跌破 5MA，顯示短期賣壓沉重。雖然部分個股仍高於 20MA，但今日的重挫已對中期趨勢構成威脅。量能方面，欣興量能比偏高，顯示有較大的換手或恐慌性賣壓，而其他個股量能比偏低，可能意味著賣壓尚未完全釋放，或買盤觀望。
+    整體投資組合呈現明顯弱勢。所有持股今日均大幅下跌，且跌幅均超過 6%，其中南電跌幅更近一成，顯示市場對 ABF 載板族群的信心受挫。欣興、南電今日跌破 5MA，景碩、臻鼎-KY 則已在 5MA 之下，顯示短期賣壓沉重。雖然各股仍位於 20MA 及 60MA 之上，但若短期內無法止跌回穩，恐有回測中長期均線的風險。
 
 2.  **風險排序（由高到低）：**
-    *   **8046 南電：** 風險最高，今日跌幅最大且接近跌停，顯示市場對其前景看法最悲觀。
-    *   **3037 欣興：** 風險次高，雖然跌幅略小於南電，但量能比偏高，顯示市場波動劇烈，籌碼可能不穩。
-    *   **3189 景碩：** 風險中等，跌幅也大，且收盤價已跌破 20MA，中期趨勢有轉弱疑慮。
-    *   **4958 臻鼎-KY：** 風險相對較低，雖然今日下跌，但跌幅相對較小，且仍守穩 20MA，短期支撐力道尚存。
+    *   **南電 (8046)：** 風險最高，因今日跌幅最大且已跌破 5MA，量能比 0.86 顯示賣壓仍重，短期止跌訊號不明顯。
+    *   **欣興 (3037)：** 風險次高，今日跌幅次大且已跌破 5MA，量能比 1.53 顯示有放量下跌疑慮，需留意後續走勢。
+    *   **景碩 (3189)：** 風險中等偏高，今日跌幅不小且已在 5MA 之下，量能比 0.66 顯示賣壓相對收斂，但仍需觀察。
+    *   **臻鼎-KY (4958)：** 風險相對較低，今日跌幅最小且已在 5MA 之下，量能比 0.95 顯示賣壓相對穩定，但仍受族群影響。
 
 3.  **明日重點觀察：**
-    *   觀察所有持股能否止跌回穩，特別是南電能否守住關鍵支撐位。
-    *   注意欣興的量能變化，若持續爆量下跌，需留意是否有進一步下探的風險。
-    *   關注景碩能否重新站回 20MA，若持續在 20MA 下方，可能形成空頭排列。
-    *   留意臻鼎-KY 是否能維持在 20MA 之上，以判斷其相對抗跌性。
-    *   觀察整體 ABF 載板族群的走勢，判斷是否為產業面利空導致的集體修正。
+    *   ABF 載板族群是否能止跌回穩，觀察是否有買盤進場承接。
+    *   欣興、南電能否站回 5MA，若持續在 5MA 之下，短線壓力將加重。
+    *   景碩、臻鼎-KY 是否能守住 20MA，若跌破則需留意停損點。
+    *   整體大盤走勢及外資動向，是否對 ABF 族群有進一步影響。
+    *   各股量能變化，若持續放量下跌則需提高警覺。
 
 4.  **免責聲明：**
-    以上分析僅為個人觀點，不構成任何投資建議，請投資人審慎評估並自負盈虧。
+    以上分析僅為個人觀點，不構成任何投資建議，投資人應獨立判斷並自負盈虧。
 
 ---
 
@@ -866,6 +864,7 @@
       text = text.replace(/\n(策略核心：|追蹤個股：|核心指標：|順序調整：|新聞呈現：|風控機制：)/g, "\n- $1");
 
       // Improve sub-section readability for numbered stocks and report blocks.
+      // Note: exclude lines that are chart headings (followed by a div on the next line)
       text = text.replace(/\n(\d+\.\s[^\n]+)/g, "\n### $1");
       text = text.replace(/\n(●\s[^\n]+)/g, "\n### $1");
 
@@ -875,8 +874,158 @@
       return text;
     }
 
+    // ── 個股分析迷你圖表 ─────────────────────────────────────
+    const _pscCharts = {};   // track Chart.js instances for cleanup
+
+    function _clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+    function renderPerStockCharts() {
+      document.querySelectorAll(".stock-chart-block").forEach(div => {
+        const raw = div.getAttribute("data-stock");
+        if (!raw) return;
+        let s;
+        try { s = JSON.parse(raw); } catch (e) { return; }
+
+        const code = s.code || "??";
+        const recentCloses  = s.recentCloses  || [];
+        const recentVolumes = s.recentVolumes || [];
+        const recentDates   = s.recentDates   || recentCloses.map((_, i) => `D${i + 1}`);
+        const vol5avg  = s.vol5avg  || (recentVolumes.slice(-5).reduce((a, b) => a + b, 0) / Math.max(1, Math.min(5, recentVolumes.length)));
+        const vol20avg = s.vol20avg || (recentVolumes.reduce((a, b) => a + b, 0) / Math.max(1, recentVolumes.length));
+        const todayVol = s.volume || 0;
+
+        // Compute radar scores
+        const close  = s.close  || 0;
+        const ma5    = s.ma5    || close;
+        const ma20   = s.ma20   || close;
+        const ma60   = s.ma60   || close;
+        const high20 = s.high20 || close;
+        const low20  = s.low20  || close;
+        const changePct = s.changePct || 0;
+        const volRatio  = s.volRatio  || 1;
+        const techScore   = _clamp(50 + (close - ma20) / (ma20 || 1) * 300, 5, 95);
+        const momentumScore = _clamp(50 + changePct * 4, 5, 95);
+        const liquidityScore = _clamp(volRatio * 50, 5, 95);
+        const rangeScore  = _clamp(high20 > low20 ? (close - low20) / (high20 - low20) * 100 : 50, 5, 95);
+        const maAlignScore = _clamp(50 + (close > ma5 ? 16 : -16) + (ma5 > ma20 ? 16 : -16) + (ma20 > ma60 ? 12 : -12), 5, 95);
+
+        const closeTxt  = close  ? close.toFixed(2)   : "N/A";
+        const changeTxt = s.change != null ? (s.change >= 0 ? "+" : "") + s.change.toFixed(2) : "";
+        const pctTxt    = changePct ? (changePct >= 0 ? "+" : "") + changePct.toFixed(2) + "%" : "";
+
+        // Destroy old instances
+        ["trend", "radar", "vol"].forEach(t => {
+          const key = `${code}-${t}`;
+          if (_pscCharts[key]) { _pscCharts[key].destroy(); delete _pscCharts[key]; }
+        });
+
+        div.innerHTML = `
+          <div class="psc-grid">
+            <div class="psc-card">
+              <div class="psc-title">近期收盤趨勢</div>
+              <div class="psc-canvas-wrap"><canvas id="psc-trend-${code}"></canvas></div>
+              <div class="psc-meta">${s.market || ""}&nbsp;｜&nbsp;收盤 ${closeTxt}&nbsp;${changeTxt}&nbsp;(${pctTxt})</div>
+            </div>
+            <div class="psc-card">
+              <div class="psc-title">技術強弱雷達</div>
+              <div class="psc-canvas-wrap"><canvas id="psc-radar-${code}"></canvas></div>
+              <div class="psc-meta">量能比 ${s.volRatio != null ? s.volRatio.toFixed(2) : "N/A"}&nbsp;｜&nbsp;區間 ${(s.low20 || 0).toFixed(0)}－${(s.high20 || 0).toFixed(0)}</div>
+            </div>
+            <div class="psc-card">
+              <div class="psc-title">量能比較（張）</div>
+              <div class="psc-canvas-wrap"><canvas id="psc-vol-${code}"></canvas></div>
+              <div class="psc-meta">今日 vs 5日均 vs 20日均</div>
+            </div>
+          </div>`;
+
+        // Chart 1: Price trend line + MA5 + MA20
+        if (recentCloses.length > 0) {
+          const ctx = document.getElementById(`psc-trend-${code}`);
+          if (ctx) {
+            _pscCharts[`${code}-trend`] = new Chart(ctx, {
+              type: "line",
+              data: {
+                labels: recentDates,
+                datasets: [
+                  { label: "收盤", data: recentCloses, borderColor: "#0d9488", backgroundColor: "rgba(13,148,136,.08)", fill: true, tension: 0.35, pointRadius: 3, pointHoverRadius: 5 },
+                  { label: "MA5",  data: recentCloses.map(() => ma5),  borderColor: "#f59e0b", borderDash: [4, 4], backgroundColor: "transparent", pointRadius: 0, tension: 0 },
+                  { label: "MA20", data: recentCloses.map(() => ma20), borderColor: "#0ea5e9", borderDash: [6, 3], backgroundColor: "transparent", pointRadius: 0, tension: 0 },
+                ]
+              },
+              options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { position: "bottom", labels: { boxWidth: 10, font: { size: 9 } } } },
+                scales: {
+                  y: { grid: { color: "#e2e8f0" }, ticks: { font: { size: 9 } } },
+                  x: { grid: { display: false }, ticks: { font: { size: 9 } } }
+                }
+              }
+            });
+          }
+        }
+
+        // Chart 2: Radar
+        const radarCtx = document.getElementById(`psc-radar-${code}`);
+        if (radarCtx) {
+          _pscCharts[`${code}-radar`] = new Chart(radarCtx, {
+            type: "radar",
+            data: {
+              labels: ["技術面", "動能", "量能", "區間位置", "均線多頭"],
+              datasets: [{
+                label: "評分",
+                data: [techScore, momentumScore, liquidityScore, rangeScore, maAlignScore],
+                backgroundColor: "rgba(13,148,136,.18)",
+                borderColor: "#0d9488",
+                pointBackgroundColor: "#0d9488",
+                pointRadius: 3,
+              }]
+            },
+            options: {
+              responsive: true, maintainAspectRatio: false,
+              plugins: { legend: { display: false } },
+              scales: {
+                r: {
+                  suggestedMin: 0, suggestedMax: 100,
+                  angleLines: { color: "#cbd5e1" }, grid: { color: "#e2e8f0" },
+                  pointLabels: { font: { size: 9 }, color: "#334155" },
+                  ticks: { display: false }
+                }
+              }
+            }
+          });
+        }
+
+        // Chart 3: Volume bar
+        const volCtx = document.getElementById(`psc-vol-${code}`);
+        if (volCtx) {
+          _pscCharts[`${code}-vol`] = new Chart(volCtx, {
+            type: "bar",
+            data: {
+              labels: ["今日量", "5日均", "20日均"],
+              datasets: [{
+                data: [todayVol, Math.round(vol5avg), Math.round(vol20avg)],
+                backgroundColor: ["#0d9488", "#f59e0b", "#94a3b8"],
+                borderRadius: 5, borderWidth: 0,
+              }]
+            },
+            options: {
+              responsive: true, maintainAspectRatio: false,
+              plugins: { legend: { display: false } },
+              scales: {
+                y: { grid: { color: "#e2e8f0" }, ticks: { font: { size: 9 }, callback: v => v >= 10000 ? (v / 10000).toFixed(1) + "萬" : v } },
+                x: { grid: { display: false }, ticks: { font: { size: 10 } } }
+              }
+            }
+          });
+        }
+      });
+    }
+
     // 啟動：同時更新文字報告與真實行情資料
-    renderLatestReport();
+    (async () => {
+      await renderLatestReport();
+      renderPerStockCharts();
+    })();
     bootstrapRealData();
   </script>
 </body>
