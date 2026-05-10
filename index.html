@@ -380,29 +380,97 @@
       }).format(dt);
     }
 
+    async function fetchJsonWithFallback(primaryUrl) {
+      const candidates = [
+        { label: "direct", url: primaryUrl },
+        { label: "allorigins", url: `https://api.allorigins.win/raw?url=${encodeURIComponent(primaryUrl)}` },
+        { label: "corsproxy", url: `https://corsproxy.io/?${encodeURIComponent(primaryUrl)}` }
+      ];
+
+      let lastError = "";
+      for (const candidate of candidates) {
+        try {
+          const res = await fetch(candidate.url, { cache: "no-store" });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const json = await res.json();
+          return { json, source: candidate.label };
+        } catch (err) {
+          lastError = `${candidate.label}: ${err.message}`;
+        }
+      }
+
+      throw new Error(`所有來源都失敗 (${lastError})`);
+    }
+
     async function fetchStockDayAll() {
-      const res = await fetch("https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_ALL", { cache: "no-store" });
-      if (!res.ok) throw new Error(`STOCK_DAY_ALL failed: ${res.status}`);
-      return res.json();
+      const result = await fetchJsonWithFallback("https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_ALL");
+      if (!Array.isArray(result.json) || !result.json.length) {
+        throw new Error("STOCK_DAY_ALL 回傳格式異常");
+      }
+      return result;
     }
 
     async function fetchStockHistory(code) {
       const now = new Date();
       const dateParam = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}01`;
       const url = `https://www.twse.com.tw/exchangeReport/STOCK_DAY?response=json&date=${dateParam}&stockNo=${code}`;
-      const res = await fetch(url, { cache: "no-store" });
-      if (!res.ok) throw new Error(`STOCK_DAY ${code} failed: ${res.status}`);
-      const json = await res.json();
+      const result = await fetchJsonWithFallback(url);
+      const json = result.json;
       if (json.stat !== "OK" || !Array.isArray(json.data) || !json.data.length) {
         throw new Error(`No history for ${code}`);
       }
-      return json.data.slice(-5).map((row) => ({
-        date: String(row[0]).replace(/^\d+\//, ""),
-        close: parseNumber(row[6]),
-        change: parseNumber(row[7]),
-        volume: parseNumber(row[1]),
-        tradeValue: parseNumber(row[2])
-      }));
+      return {
+        source: result.source,
+        data: json.data.slice(-5).map((row) => ({
+          date: String(row[0]).replace(/^\d+\//, ""),
+          close: parseNumber(row[6]),
+          change: parseNumber(row[7]),
+          volume: parseNumber(row[1]),
+          tradeValue: parseNumber(row[2])
+        }))
+      };
+    }
+
+    function ensureHistoryRows(historyRows, code) {
+      if (!Array.isArray(historyRows) || historyRows.length < 3) {
+        throw new Error(`${code} 歷史資料不足`);
+      }
+      if (historyRows.some((x) => !Number.isFinite(x.close))) {
+        throw new Error(`${code} 歷史收盤價格式錯誤`);
+      }
+      return historyRows;
+    }
+
+    function buildStockSnapshot(stock, daily, historyRows) {
+      const close = parseNumber(daily.ClosingPrice);
+      const change = parseNumber(daily.Change);
+      const prevClose = close - change;
+      const changePct = prevClose ? (change / prevClose) * 100 : 0;
+
+      if (!Number.isFinite(close) || !Number.isFinite(change)) {
+        throw new Error(`${stock.code} 當日價格格式錯誤`);
+      }
+
+      return {
+        ...stock,
+        close,
+        change,
+        changePct,
+        tradeValue: parseNumber(daily.TradeValue),
+        history: ensureHistoryRows(historyRows, stock.code)
+      };
+    }
+
+    function updateSourceNote(daySource, historySources) {
+      const uniq = Array.from(new Set([daySource, ...historySources]));
+      const sourceText = uniq.join(" + ");
+      document.getElementById("sourceNote").textContent = `資料來源：TWSE 開放資料 API（來源路徑：${sourceText}）。`;
+    }
+
+    function loadingMessage(text) {
+      const statusEl = document.getElementById("fetchStatus");
+      statusEl.className = "status";
+      statusEl.textContent = text;
     }
 
     function createCharts(stocks, labels) {
@@ -507,33 +575,24 @@
     async function bootstrapRealData() {
       const statusEl = document.getElementById("fetchStatus");
       try {
-        const dayAll = await fetchStockDayAll();
+        loadingMessage("正在讀取即時行情資料...");
+        const dayAllResult = await fetchStockDayAll();
+        const dayAll = dayAllResult.json;
         const byCode = new Map(dayAll.map((x) => [x.Code, x]));
 
-        const histories = await Promise.all(trackedStocks.map((s) => fetchStockHistory(s.code)));
+        const historyResults = await Promise.all(trackedStocks.map((s) => fetchStockHistory(s.code)));
 
         const stocks = trackedStocks.map((stock, idx) => {
           const daily = byCode.get(stock.code);
           if (!daily) throw new Error(`查無 ${stock.code} 的當日資料`);
 
-          const close = parseNumber(daily.ClosingPrice);
-          const change = parseNumber(daily.Change);
-          const prevClose = close - change;
-          const changePct = prevClose ? (change / prevClose) * 100 : 0;
-
-          return {
-            ...stock,
-            close,
-            change,
-            changePct,
-            tradeValue: parseNumber(daily.TradeValue),
-            history: histories[idx]
-          };
+          return buildStockSnapshot(stock, daily, historyResults[idx].data);
         });
 
         const labels = stocks[0].history.map((x) => x.date);
         renderKpis(stocks);
         createCharts(stocks, labels);
+        updateSourceNote(dayAllResult.source, historyResults.map((x) => x.source));
 
         statusEl.className = "status ok";
         statusEl.textContent = "已載入 TWSE 真實資料，圖表與指標均為即時抓取結果。";
