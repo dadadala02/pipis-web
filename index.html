@@ -1354,7 +1354,51 @@
         report.appendChild(block);
       }
 
+      syncStockAnalysisSection();
       renderPerStockCharts();
+    }
+
+    function collectStockAnalysisNodes(startHeading) {
+      const nodes = [];
+      let node = startHeading;
+      while (node) {
+        const next = node.nextSibling;
+        const stopAt = node !== startHeading
+          && node.nodeType === 1
+          && node.matches("h1, h2")
+          && (node.textContent.includes("自選股綜合評價") || /^\d{4}\s/.test(node.textContent.trim()));
+        if (stopAt) break;
+        nodes.push(node);
+        node = next;
+      }
+      return nodes;
+    }
+
+    function syncStockAnalysisSection() {
+      const report = document.getElementById("report");
+      const target = findSectionHeading("自選股綜合評價");
+      if (!report || !target) return;
+
+      const trackedSet = new Set(trackedStocks.map((s) => s.code));
+
+      // 先移除不在追蹤清單內的分析區塊
+      [...report.querySelectorAll("h2")]
+        .filter((h) => /^\d{4}\s/.test(h.textContent.trim()))
+        .forEach((h) => {
+          const code = h.textContent.trim().slice(0, 4);
+          if (!trackedSet.has(code)) {
+            collectStockAnalysisNodes(h).forEach((n) => n.remove());
+          }
+        });
+
+      // 再按照追蹤清單順序重排現有分析區塊
+      for (let i = 0; i < trackedStocks.length; i += 1) {
+        const code = trackedStocks[i].code;
+        const heading = [...report.querySelectorAll("h2")].find((h) => new RegExp(`^${code}\\s`).test(h.textContent.trim()));
+        if (!heading) continue;
+        const nodes = collectStockAnalysisNodes(heading);
+        nodes.forEach((n) => report.insertBefore(n, target));
+      }
     }
 
     function getLatestStockName(code) {
@@ -1404,6 +1448,8 @@
       removeStockAnalysisByCode(code);
       renderInteractiveStockManager();
       await bootstrapRealData();
+      syncStockAnalysisSection();
+      renderPerStockCharts();
       document.getElementById("stockManagerStatus").textContent = `${code} 已移除。`;
     }
 
@@ -1418,6 +1464,8 @@
       persistTrackedStocks();
       renderInteractiveStockManager();
       await bootstrapRealData();
+      syncStockAnalysisSection();
+      renderPerStockCharts();
       document.getElementById("stockManagerStatus").textContent = `已將 ${sourceCode} 排序到 ${targetCode} 前方。`;
     }
 
@@ -1530,6 +1578,8 @@
 
       renderInteractiveStockManager();
       syncReportStockList();
+      syncStockAnalysisSection();
+      renderPerStockCharts();
     }
 
     // 啟動：同時更新文字報告與真實行情資料
