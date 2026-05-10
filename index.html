@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --bg: #f8f6ef;
+      --bg: #d9cbb8;
       --card: #ffffff;
       --text: #1e1f27;
       --muted: #6b7280;
@@ -24,11 +24,7 @@
       margin: 0;
       font-family: "Noto Sans TC", "Microsoft JhengHei", sans-serif;
       color: var(--text);
-      background:
-        radial-gradient(circle at 8% 0%, #fde68a 0, transparent 26%),
-        radial-gradient(circle at 100% 20%, #bfdbfe 0, transparent 30%),
-        radial-gradient(circle at 0% 100%, #99f6e4 0, transparent 25%),
-        var(--bg);
+      background: var(--bg);
       padding: 28px 16px;
     }
     .container {
@@ -163,6 +159,13 @@
       color: var(--muted);
       font-size: 13px;
     }
+    .status {
+      margin-top: 8px;
+      color: #475569;
+      font-size: 13px;
+    }
+    .status.warn { color: #b45309; }
+    .status.ok { color: #0f766e; }
     @media (max-width: 960px) {
       .dashboard { grid-template-columns: 1fr; }
       .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -176,32 +179,33 @@
     <section class="hero">
       <h1>台股自選股 AI 報告</h1>
       <p>視覺化儀表板 + 詳細文字版（可放到 GitHub Pages）</p>
-      <div class="meta">最後更新：2026-05-10 17:36</div>
+      <div class="meta" id="metaUpdated">資料更新中...</div>
       <div class="kpis">
-        <div class="kpi"><div class="label">追蹤檔數</div><div class="value">4</div></div>
-        <div class="kpi"><div class="label">主力族群</div><div class="value">ABF/PCB</div></div>
-        <div class="kpi"><div class="label">市場節奏</div><div class="value">波段</div></div>
-        <div class="kpi"><div class="label">風險等級</div><div class="value">中</div></div>
+        <div class="kpi"><div class="label">追蹤檔數</div><div class="value" id="kpiCount">--</div></div>
+        <div class="kpi"><div class="label">當日最強</div><div class="value" id="kpiLeader">--</div></div>
+        <div class="kpi"><div class="label">平均漲跌幅</div><div class="value" id="kpiAvgMove">--</div></div>
+        <div class="kpi"><div class="label">風險等級</div><div class="value" id="kpiRisk">--</div></div>
       </div>
     </section>
 
     <section class="dashboard" aria-label="報告圖表">
       <div class="panel">
-        <h3>個股波段分數（近 5 日）</h3>
+        <h3>個股近 5 日收盤趨勢（真實資料）</h3>
         <div class="canvas-wrap"><canvas id="trendChart"></canvas></div>
       </div>
       <div class="panel">
-        <h3>今日強弱雷達（技術/法人/量能）</h3>
+        <h3>今日強弱雷達（技術/動能/量能）</h3>
         <div class="canvas-wrap"><canvas id="radarChart"></canvas></div>
       </div>
       <div class="panel">
-        <h3>策略資源配置</h3>
+        <h3>資金配置（今日成交金額占比）</h3>
         <div class="canvas-wrap"><canvas id="mixChart"></canvas></div>
       </div>
     </section>
 
     <article class="report" id="report"></article>
-    <p class="tip">此頁由本機檔案自動產生，內容僅供研究與教育用途，不構成投資建議。</p>
+    <p class="tip" id="sourceNote">資料來源：TWSE 開放資料 API（收盤後更新）。</p>
+    <p class="status" id="fetchStatus">資料準備中...</p>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
@@ -332,6 +336,13 @@
 內容僅供研究與教育用途，不構成任何投資建議。投資有風險，入市需謹慎。
 `;
 
+    const trackedStocks = [
+      { code: "3037", name: "欣興" },
+      { code: "4958", name: "臻鼎-KY" },
+      { code: "3189", name: "景碩" },
+      { code: "8046", name: "南電" }
+    ];
+
     const chartFont = {
       family: "Sora, Noto Sans TC, sans-serif",
       size: 11
@@ -340,95 +351,198 @@
     Chart.defaults.color = "#334155";
     Chart.defaults.font = chartFont;
 
-    new Chart(document.getElementById("trendChart"), {
-      type: "line",
-      data: {
-        labels: ["D-4", "D-3", "D-2", "D-1", "Today"],
-        datasets: [
-          {
-            label: "3037 欣興",
-            data: [67, 70, 72, 76, 79],
-            borderColor: "#0d9488",
-            backgroundColor: "rgba(13,148,136,0.15)",
-            tension: 0.35,
-            fill: true
-          },
-          {
-            label: "4958 臻鼎-KY",
-            data: [58, 60, 59, 63, 65],
-            borderColor: "#f59e0b",
-            backgroundColor: "rgba(245,158,11,0.08)",
-            tension: 0.35,
-            fill: true
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { position: "bottom" }
-        },
-        scales: {
-          y: { min: 40, max: 90, grid: { color: "#e2e8f0" } },
-          x: { grid: { display: false } }
-        }
-      }
-    });
+    let trendChart;
+    let radarChart;
+    let mixChart;
 
-    new Chart(document.getElementById("radarChart"), {
-      type: "radar",
-      data: {
-        labels: ["技術面", "法人籌碼", "量能", "題材延續", "波動可控"],
-        datasets: [
-          {
+    function parseNumber(value) {
+      if (value === null || value === undefined) return NaN;
+      const cleaned = String(value).replace(/,/g, "").replace(/\+/g, "").trim();
+      const n = Number(cleaned);
+      return Number.isFinite(n) ? n : NaN;
+    }
+
+    function clamp(v, min, max) {
+      return Math.max(min, Math.min(max, v));
+    }
+
+    function formatPct(v) {
+      return `${v >= 0 ? "+" : ""}${v.toFixed(2)}%`;
+    }
+
+    function formatDateTime(dt) {
+      return new Intl.DateTimeFormat("zh-TW", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit"
+      }).format(dt);
+    }
+
+    async function fetchStockDayAll() {
+      const res = await fetch("https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_ALL", { cache: "no-store" });
+      if (!res.ok) throw new Error(`STOCK_DAY_ALL failed: ${res.status}`);
+      return res.json();
+    }
+
+    async function fetchStockHistory(code) {
+      const now = new Date();
+      const dateParam = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}01`;
+      const url = `https://www.twse.com.tw/exchangeReport/STOCK_DAY?response=json&date=${dateParam}&stockNo=${code}`;
+      const res = await fetch(url, { cache: "no-store" });
+      if (!res.ok) throw new Error(`STOCK_DAY ${code} failed: ${res.status}`);
+      const json = await res.json();
+      if (json.stat !== "OK" || !Array.isArray(json.data) || !json.data.length) {
+        throw new Error(`No history for ${code}`);
+      }
+      return json.data.slice(-5).map((row) => ({
+        date: String(row[0]).replace(/^\d+\//, ""),
+        close: parseNumber(row[6]),
+        change: parseNumber(row[7]),
+        volume: parseNumber(row[1]),
+        tradeValue: parseNumber(row[2])
+      }));
+    }
+
+    function createCharts(stocks, labels) {
+      const palette = ["#0d9488", "#f59e0b", "#0ea5e9", "#a855f7"];
+      const trendDatasets = stocks.map((s, idx) => ({
+        label: `${s.code} ${s.name}`,
+        data: s.history.map((d) => d.close),
+        borderColor: palette[idx % palette.length],
+        backgroundColor: "transparent",
+        tension: 0.35,
+        pointRadius: 2.5
+      }));
+
+      trendChart = new Chart(document.getElementById("trendChart"), {
+        type: "line",
+        data: { labels, datasets: trendDatasets },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: "bottom" } },
+          scales: {
+            y: { grid: { color: "#e2e8f0" } },
+            x: { grid: { display: false } }
+          }
+        }
+      });
+
+      const technical = clamp(50 + stocks.reduce((acc, s) => {
+        const closes = s.history.map((h) => h.close);
+        const ma5 = closes.reduce((a, b) => a + b, 0) / closes.length;
+        return acc + ((s.close - ma5) / ma5) * 400;
+      }, 0) / stocks.length, 5, 95);
+
+      const momentum = clamp(50 + stocks.reduce((acc, s) => acc + s.changePct * 4, 0) / stocks.length, 5, 95);
+      const liquidity = clamp(30 + stocks.reduce((acc, s) => acc + (s.tradeValue / 1e8), 0) / stocks.length, 5, 95);
+      const winRate = clamp((stocks.filter((s) => s.change > 0).length / stocks.length) * 100, 5, 95);
+
+      const avg = stocks.reduce((a, s) => a + s.changePct, 0) / stocks.length;
+      const variance = stocks.reduce((a, s) => a + Math.pow(s.changePct - avg, 2), 0) / stocks.length;
+      const volatilityControl = clamp(95 - Math.sqrt(variance) * 14, 5, 95);
+
+      radarChart = new Chart(document.getElementById("radarChart"), {
+        type: "radar",
+        data: {
+          labels: ["技術面", "動能", "量能", "上漲家數", "波動可控"],
+          datasets: [{
             label: "今日評分",
-            data: [78, 72, 74, 81, 69],
+            data: [technical, momentum, liquidity, winRate, volatilityControl],
             backgroundColor: "rgba(14,116,144,0.22)",
             borderColor: "#0e7490",
             pointBackgroundColor: "#0e7490"
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false }
+          }]
         },
-        scales: {
-          r: {
-            suggestedMin: 40,
-            suggestedMax: 90,
-            angleLines: { color: "#cbd5e1" },
-            grid: { color: "#e2e8f0" },
-            pointLabels: { color: "#0f172a" }
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            r: {
+              suggestedMin: 0,
+              suggestedMax: 100,
+              angleLines: { color: "#cbd5e1" },
+              grid: { color: "#e2e8f0" },
+              pointLabels: { color: "#0f172a" }
+            }
           }
         }
-      }
-    });
+      });
 
-    new Chart(document.getElementById("mixChart"), {
-      type: "doughnut",
-      data: {
-        labels: ["自選股主線", "族群輪動", "風險保留", "事件觀察"],
-        datasets: [
-          {
-            data: [46, 24, 18, 12],
+      mixChart = new Chart(document.getElementById("mixChart"), {
+        type: "doughnut",
+        data: {
+          labels: stocks.map((s) => `${s.code} ${s.name}`),
+          datasets: [{
+            data: stocks.map((s) => s.tradeValue),
             backgroundColor: ["#0d9488", "#0ea5e9", "#f59e0b", "#94a3b8"],
             borderWidth: 0
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        cutout: "68%",
-        plugins: {
-          legend: { position: "bottom" }
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: "68%",
+          plugins: { legend: { position: "bottom" } }
         }
+      });
+    }
+
+    function renderKpis(stocks) {
+      const avgMove = stocks.reduce((acc, s) => acc + s.changePct, 0) / stocks.length;
+      const leader = [...stocks].sort((a, b) => b.changePct - a.changePct)[0];
+      const volatility = Math.sqrt(stocks.reduce((acc, s) => acc + Math.pow(s.changePct - avgMove, 2), 0) / stocks.length);
+      const risk = volatility >= 5 ? "高" : volatility >= 2.5 ? "中" : "低";
+
+      document.getElementById("kpiCount").textContent = String(stocks.length);
+      document.getElementById("kpiLeader").textContent = `${leader.code} ${formatPct(leader.changePct)}`;
+      document.getElementById("kpiAvgMove").textContent = formatPct(avgMove);
+      document.getElementById("kpiRisk").textContent = risk;
+      document.getElementById("metaUpdated").textContent = `最後更新：${formatDateTime(new Date())}`;
+    }
+
+    async function bootstrapRealData() {
+      const statusEl = document.getElementById("fetchStatus");
+      try {
+        const dayAll = await fetchStockDayAll();
+        const byCode = new Map(dayAll.map((x) => [x.Code, x]));
+
+        const histories = await Promise.all(trackedStocks.map((s) => fetchStockHistory(s.code)));
+
+        const stocks = trackedStocks.map((stock, idx) => {
+          const daily = byCode.get(stock.code);
+          if (!daily) throw new Error(`查無 ${stock.code} 的當日資料`);
+
+          const close = parseNumber(daily.ClosingPrice);
+          const change = parseNumber(daily.Change);
+          const prevClose = close - change;
+          const changePct = prevClose ? (change / prevClose) * 100 : 0;
+
+          return {
+            ...stock,
+            close,
+            change,
+            changePct,
+            tradeValue: parseNumber(daily.TradeValue),
+            history: histories[idx]
+          };
+        });
+
+        const labels = stocks[0].history.map((x) => x.date);
+        renderKpis(stocks);
+        createCharts(stocks, labels);
+
+        statusEl.className = "status ok";
+        statusEl.textContent = "已載入 TWSE 真實資料，圖表與指標均為即時抓取結果。";
+      } catch (error) {
+        statusEl.className = "status warn";
+        statusEl.textContent = `讀取真實資料失敗：${error.message}。請確認網路或 API 可用性。`;
+        document.getElementById("metaUpdated").textContent = "最後更新：資料讀取失敗";
       }
-    });
+    }
 
     function normalizeMarkdown(raw) {
       let text = raw;
@@ -456,6 +570,7 @@
     }
 
     document.getElementById('report').innerHTML = marked.parse(normalizeMarkdown(markdownText));
+    bootstrapRealData();
   </script>
 </body>
 </html>
