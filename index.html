@@ -179,6 +179,14 @@
       gap: 12px;
       margin: 10px 0 22px;
     }
+    .psc-canvas-wrap canvas {
+      width: 100% !important;
+      height: 100% !important;
+      display: block;
+    }
+    @media (max-width: 1100px) {
+      .psc-grid { grid-template-columns: 1fr; }
+    }
     @media (max-width: 760px) { .psc-grid { grid-template-columns: 1fr; } }
     .psc-card {
       background: #f8f7f4;
@@ -212,6 +220,25 @@
       overflow-wrap: break-word;
       display: inline-block;
       max-width: 100%;
+    }
+    .report pre {
+      max-width: 100%;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: #f3f4f6;
+    }
+    .report pre code {
+      display: block;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+      max-width: 100%;
+      padding: 0;
+      background: transparent;
     }
     ul, ol { padding-left: 1.2rem; }
     blockquote {
@@ -1004,6 +1031,11 @@
 
       // Convert common label lines into bullet points under each section.
       text = text.replace(/\n(策略核心：|追蹤個股：|核心指標：|順序調整：|新聞呈現：|風控機制：)/g, "\n- $1");
+
+      // Gemini sometimes outputs indented bullets (4+ spaces) that marked treats as code blocks.
+      // Flatten those lines back to regular markdown list items to avoid wide gray code panels.
+      text = text.replace(/^\s{4,}([*-]\s+\*\*[^\n]+)/gm, "$1");
+      text = text.replace(/^\s{4,}([*-]\s+[^\n]+)/gm, "$1");
 
       // Improve sub-section readability for numbered stocks and report blocks.
       // Note: exclude lines that are chart headings (followed by a div on the next line)
